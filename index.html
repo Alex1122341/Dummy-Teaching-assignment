@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>UCVM Timetable - Synced All Faculty Summaries + Admin Swap</title>
+  <title>UCVM Timetable - Synced + Admin Availability</title>
   <style>
 :root {
   --bg:#eef0f4; --surface:#fff; --surface-2:#f6f7f9; --surface-3:#eceef2;
@@ -106,7 +106,10 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
 @media(max-width:900px){.main-view{grid-template-columns:1fr}.ui-editor-panel{top:46px;right:10px;bottom:54px;width:min(360px,calc(100vw - 20px))}}
 @media(max-width:768px){body.ui-banner-hidden .filter-bar-wrap{top:0}}
 
-  </style>
+  
+/* V9.3 AFC availability in admin assignment tools */
+.availability-pill{display:inline-block;padding:2px 6px;border-radius:999px;font-size:9.5px;font-weight:850;border:1px solid var(--border);white-space:nowrap}.availability-ok{background:#ecfdf3;color:#166534;border-color:#a7d7b5}.availability-no{background:#fff1f2;color:#b91c1c;border-color:#f3b4ba}.availability-none{background:var(--surface-2);color:var(--text-3)}.availability-detail{font-size:9.5px;line-height:1.35;margin-top:3px}.availability-detail.no{color:#b91c1c;font-weight:700}.availability-detail.ok{color:#166534}.swap-unavailable td{background:#fff9f9}.dark .swap-unavailable td{background:#2a1719}.instructor-availability{font-size:9.5px;line-height:1.35;margin-top:3px}.instructor-availability.no{color:#b91c1c;font-weight:750}.instructor-availability.ok{color:#166534}.instructor-select option{font-weight:400}
+</style>
 </head>
 <body class="auth-locked">
   <div class="auth-gate" id="auth-gate">
@@ -124,7 +127,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
   </div>
 
   <div class="test-banner">
-    <strong id="ui-banner-label">2026-2027 SYNCED SCHEDULE · ADMIN SWAP V9.2</strong>
+    <strong id="ui-banner-label">2026-2027 SYNCED SCHEDULE · ADMIN AVAILABILITY V9.3</strong>
     <span id="ui-banner-message">2026-27 timetable is synchronized with the Faculty Dashboard from All Faculty Summaries. Both pages use the same live Firestore sessions.</span>
     <button id="auth-setup-btn" style="padding:3px 10px;border:1px solid #9a6700;border-radius:999px;background:#fff8dc;color:#664d03;font-size:10.5px;font-weight:700">Auth Setup</button>
   </div>
@@ -484,7 +487,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
     academicYear: '2026-2027',
     brand: 'UCVM',
     pageTitle: 'Timetable',
-    bannerLabel: '2026-2027 SYNCED SCHEDULE · ADMIN SWAP V9.2',
+    bannerLabel: '2026-2027 SYNCED SCHEDULE · ADMIN AVAILABILITY V9.3',
     bannerMessage: '2026-27 timetable is synchronized with the Faculty Dashboard from All Faculty Summaries. Both pages use the same live Firestore sessions.',
     updatesTitle: 'Latest Updates',
     updatesSubtitle: 'Schedule source / local changes',
@@ -833,6 +836,14 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
   function swapContractTeachingDOE(f){ return [f?.doe?.teaching,f?.doeTeaching,f?.teachingDOE,f?.contractTeachingDOE].map(swapNumeric).find(v=>v!==null) ?? null; }
   function swapAssignmentCredit(a){ const c=swapNumeric(a?.doeCredit); if(c!==null)return c; const r=swapNumeric(a?.doeRate),h=swapNumeric(a?.creditedHours); return r!==null&&h!==null?Number((r*h).toFixed(6)):null; }
   function swapAssignmentHours(a,s){ const h=swapNumeric(a?.creditedHours); if(h!==null)return h; if(s?.timeUnknown)return null; try{return blockHours(s.start,s.end)}catch{return null} }
+  function awayRecordsForFaculty(f){return Array.isArray(f?.awayFromCampusRecords)?f.awayFromCampusRecords.filter(x=>x&&x.startDate&&x.endDate):[]}
+  function facultyAvailability(f,dateYmd){
+    const d=String(dateYmd||'').slice(0,10); if(!d)return{available:null,conflicts:[]};
+    const conflicts=awayRecordsForFaculty(f).filter(x=>String(x.startDate)<=d&&d<=String(x.endDate)).sort((a,b)=>String(a.startDate).localeCompare(String(b.startDate)));
+    return{available:conflicts.length===0,conflicts};
+  }
+  function availabilityShort(av){if(av.available===null)return'Date not set';if(av.available)return'Available';const x=av.conflicts[0];return`Unavailable · ${x?.purpose||'Away from Campus'}`}
+  function availabilityDetail(av){if(av.available===null)return'Availability cannot be checked until a session date is set.';if(av.available)return'Available in AFC tracker for this date.';return av.conflicts.map(x=>`${x.purpose||'Away from Campus'} (${x.startDate}${x.endDate&&x.endDate!==x.startDate?' to '+x.endDate:''})`).join('; ')}
 
   function unsubscribeFacultyDirectory(){ if(facultyUnsubscribe){try{facultyUnsubscribe()}catch(_){ } facultyUnsubscribe=null;} facultyDirectory=[]; }
   function subscribeFacultyDirectory(){
@@ -901,8 +912,8 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
           <label class="form-field"><span class="form-label">Swap out current faculty assignment</span><select class="form-select" id="swap-out-select">${assignments.map((a,i)=>`<option value="${i}" ${i===selected?'selected':''}>${escapeHtml(a.name||'Unassigned')} · ${escapeHtml(a.role||s.type||'')} · ${swapPct(swapAssignmentCredit(a))}</option>`).join('')}</select></label>
           <div class="swap-current-card"><div class="swap-current-title">Current assignment being removed</div><div class="swap-current-line"><span><strong>${escapeHtml(outgoing?.name||'Unknown')}</strong></span><span>Role: <strong>${escapeHtml(outgoing?.role||s.type||'')}</strong></span><span>DOE credit: <strong>${credit===null?'Unrated':swapPct(credit)}</strong></span><span>Current Assigned DOE: <strong>${swapPct(outCurrent)}</strong></span><span>After removal: <strong>${credit===null?'Unrated impact':swapPct(outAfter)}</strong></span></div></div>
           <div class="swap-search-row"><label class="form-field"><span class="form-label">Find replacement faculty</span><input class="form-input" id="swap-search" placeholder="Search name, specialty, teaching area, UCID..."></label></div>
-          <div class="swap-help">Each candidate shows their <strong>current live Assigned Teaching DOE</strong> and the <strong>projected Assigned DOE after this block is added</strong>. Contract Teaching DOE is shown when it exists in the faculty record. The replacement inherits this assignment's role, credited hours and DOE rate. ${credit===null?'<strong>This activity has no numeric DOE rate in the source, so the projected DOE cannot be calculated.</strong>':''}</div>
-          <div class="swap-table-wrap"><table class="swap-table"><thead><tr><th>Faculty</th><th>Contract Teaching DOE</th><th>Current Assigned DOE</th><th>Projected After Swap</th><th>Remaining / Over</th><th>Status</th><th></th></tr></thead><tbody id="swap-candidate-body"></tbody></table></div>
+          <div class="swap-help">Each candidate shows <strong>AFC availability for this session date</strong>, current live Assigned Teaching DOE and projected Assigned DOE after this block is added. Contract Teaching DOE is shown when it exists in the faculty record. Unavailable faculty remain selectable by an administrator, but V9.3 requires an explicit warning confirmation. The replacement inherits this assignment's role, credited hours and DOE rate. ${credit===null?'<strong>This activity has no numeric DOE rate in the source, so the projected DOE cannot be calculated.</strong>':''}</div>
+          <div class="swap-table-wrap"><table class="swap-table"><thead><tr><th>Faculty</th><th>Availability</th><th>Contract Teaching DOE</th><th>Current Assigned DOE</th><th>Projected After Swap</th><th>Remaining / Over</th><th>DOE Status</th><th></th></tr></thead><tbody id="swap-candidate-body"></tbody></table></div>
         </div>
         <div class="modal-footer"><span class="form-hint">Swap is written to Firestore and logged in session_change_log.</span><button class="btn btn-secondary" id="swap-cancel">Cancel</button></div>`);
       const box=document.querySelector('#modal .modal-box'); if(box)box.classList.add('swap-wide');
@@ -914,15 +925,16 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
         const rows=facultyDirectory.filter(f=>{
           if(String(f.__id)===outgoingId)return false;
           if(existingIds.has(String(f.__id)))return false;
-          if(!q)return true;
-          const hay=swapNameKey([swapFacultyName(f),f.ucid,f.email,f.teachingArea,f.teachingAreaEmphasis,f.boardSpecialties,f.currentTitle,f.rank].filter(Boolean).join(' ')); return hay.includes(q);
-        });
+          if(q){const hay=swapNameKey([swapFacultyName(f),f.ucid,f.email,f.teachingArea,f.teachingAreaEmphasis,f.boardSpecialties,f.currentTitle,f.rank].filter(Boolean).join(' '));if(!hay.includes(q))return false;}
+          return true;
+        }).sort((a,b)=>{const aa=facultyAvailability(a,s.date),bb=facultyAvailability(b,s.date);const av=(aa.available===false?1:0)-(bb.available===false?1:0);return av||swapFacultyName(a).localeCompare(swapFacultyName(b))});
         $('swap-candidate-body').innerHTML=rows.map(f=>{
-          const st=doeState.get(String(f.__id)); const current=st?.current??null; const projected=(current!==null&&credit!==null)?current+credit:null; const status=swapStatus(st?.contract??null,projected); const rem=status.remaining;
+          const st=doeState.get(String(f.__id)); const current=st?.current??null; const projected=(current!==null&&credit!==null)?current+credit:null; const status=swapStatus(st?.contract??null,projected); const rem=status.remaining, av=facultyAvailability(f,s.date);
           const afterText=credit===null?(current===null?'—':`${swapPct(current)} + unrated`):swapPct(projected);
           const remText=rem===null?'—':(rem>=0?`${rem.toFixed(2)}% remaining`:`${Math.abs(rem).toFixed(2)}% over`);
-          return `<tr><td><strong>${escapeHtml(swapFacultyName(f))}</strong><br><span class="form-hint">${escapeHtml(f.teachingArea||f.teachingAreaEmphasis||f.currentTitle||'')} ${f.ucid?`· ${escapeHtml(f.ucid)}`:''}</span></td><td class="swap-num">${swapPct(st?.contract??null)}</td><td class="swap-num">${swapPct(current)}</td><td class="swap-num swap-projected">${afterText}</td><td class="swap-num">${remText}</td><td><span class="swap-status ${status.cls}">${status.label}</span></td><td><button class="btn btn-primary btn-swap-confirm" data-swap-faculty="${escapeHtml(f.__id)}">SWAP</button></td></tr>`;
-        }).join('')||'<tr><td colspan="7" style="padding:20px;text-align:center;color:var(--text-3)">No faculty match this search.</td></tr>';
+          const avHtml=av.available===false?`<span class="availability-pill availability-no">Unavailable</span><div class="availability-detail no">${escapeHtml(availabilityDetail(av))}</div>`:`<span class="availability-pill availability-ok">Available</span><div class="availability-detail ok">AFC clear</div>`;
+          return `<tr class="${av.available===false?'swap-unavailable':''}"><td><strong>${escapeHtml(swapFacultyName(f))}</strong><br><span class="form-hint">${escapeHtml(f.teachingArea||f.teachingAreaEmphasis||f.currentTitle||'')} ${f.ucid?`· ${escapeHtml(f.ucid)}`:''}</span></td><td>${avHtml}</td><td class="swap-num">${swapPct(st?.contract??null)}</td><td class="swap-num">${swapPct(current)}</td><td class="swap-num swap-projected">${afterText}</td><td class="swap-num">${remText}</td><td><span class="swap-status ${status.cls}">${status.label}</span></td><td><button class="btn btn-primary btn-swap-confirm" data-swap-faculty="${escapeHtml(f.__id)}">SWAP</button></td></tr>`;
+        }).join('')||'<tr><td colspan="8" style="padding:20px;text-align:center;color:var(--text-3)">No faculty match this search.</td></tr>';
         document.querySelectorAll('[data-swap-faculty]').forEach(btn=>btn.onclick=()=>performFacultySwap(s,assignments,selected,btn.dataset.swapFaculty,doeState));
       };
       $('swap-search').oninput=renderCandidates; renderCandidates();
@@ -935,8 +947,9 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
     const replacement=facultyDirectory.find(f=>String(f.__id)===String(newFacultyId)); if(!replacement)return;
     const outgoing=assignments[outIndex]; if(!outgoing)return;
     const oldFaculty=facultyForAssignment(outgoing); const oldName=outgoing.name||swapFacultyName(oldFaculty)||'Unknown'; const newName=swapFacultyName(replacement);
-    const credit=swapAssignmentCredit(outgoing), currentNew=doeState.get(String(replacement.__id))?.current??null, projectedNew=(currentNew!==null&&credit!==null)?currentNew+credit:null;
-    if(!confirm(`Swap ${oldName} to ${newName} for ${session.course} - ${session.topic}?\n\n${credit===null?'DOE impact: this activity is unrated.':`DOE credit transferred: ${credit.toFixed(2)}%\n${newName}: ${currentNew===null?'current DOE unavailable':currentNew.toFixed(2)+'%'} → ${projectedNew===null?'projected unavailable':projectedNew.toFixed(2)+'%'}`}`))return;
+    const credit=swapAssignmentCredit(outgoing), currentNew=doeState.get(String(replacement.__id))?.current??null, projectedNew=(currentNew!==null&&credit!==null)?currentNew+credit:null, av=facultyAvailability(replacement,session.date);
+    const awayWarning=av.available===false?`\n\nWARNING: ${newName} is marked UNAVAILABLE in AFC on ${session.date}:\n${availabilityDetail(av)}\n\nAdmin override?`:'';
+    if(!confirm(`Swap ${oldName} to ${newName} for ${session.course} - ${session.topic}?\n\n${credit===null?'DOE impact: this activity is unrated.':`DOE credit transferred: ${credit.toFixed(2)}%\n${newName}: ${currentNew===null?'current DOE unavailable':currentNew.toFixed(2)+'%'} → ${projectedNew===null?'projected unavailable':projectedNew.toFixed(2)+'%'}`}${awayWarning}`))return;
     const nextAssignments=assignments.map((a,i)=>i===outIndex?{...a,ucid:String(replacement.__id),name:newName,category:'Faculty',source:'Admin SWAP',swappedFrom:{ucid:String(outgoing.ucid||oldFaculty?.__id||''),name:oldName},swappedAt:new Date().toISOString()}:a);
     const next={...session,assignments:nextAssignments,instructor:nextAssignments.map(a=>a.name).filter(Boolean).join('; '),labDetails:labDetailsFromAssignments(session.type,nextAssignments,session.topic),sourceSystem:'Synchronized live timetable'};
     try{
@@ -1238,9 +1251,9 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
         let options='';
         if(!currentId&&currentName&&swapNameKey(currentName)!==swapNameKey('Other / Unassigned')) options+=`<option value="__current__" selected>${escapeHtml(currentName)} (source/current)</option>`;
         options+=`<option value="__unassigned__" ${!currentId&&(!currentName||swapNameKey(currentName)===swapNameKey('Other / Unassigned'))?'selected':''}>Other / Unassigned</option>`;
-        for(const f of facultyDirectory){const id=String(f.__id),selected=id===currentId,disabled=!selected&&usedIds.has(id);options+=`<option value="${escapeHtml(id)}" ${selected?'selected':''} ${disabled?'disabled':''}>${escapeHtml(swapFacultyName(f))}</option>`}
+        for(const f of facultyDirectory){const id=String(f.__id),selected=id===currentId,disabled=!selected&&usedIds.has(id),av=facultyAvailability(f,$('date')?.value||s.date),suffix=av.available===false?` — UNAVAILABLE: ${av.conflicts[0]?.purpose||'Away from Campus'}`:'';options+=`<option value="${escapeHtml(id)}" ${selected?'selected':''} ${disabled?'disabled':''}>${escapeHtml(swapFacultyName(f)+suffix)}</option>`}
         const credit=swapAssignmentCredit(a); const role=a.role||defaultTeachingRole($('type')?.value||s.type); const meta=[role,credit===null?'DOE unrated':`${Number(credit).toFixed(3)}% DOE`].filter(Boolean).join(' · ');
-        return `<div class="instructor-line" data-instructor-row="${i}"><div><select class="form-select instructor-select" data-instructor-select="${i}" ${isAdmin?'':'disabled'}>${options}</select><div class="instructor-role-note">${escapeHtml(meta)}</div></div>${isAdmin?`<button type="button" class="instructor-remove" data-instructor-remove="${i}">Remove</button>`:''}</div>`;
+        const selectedFaculty=currentId?facultyDirectory.find(f=>String(f.__id)===currentId):null,av=selectedFaculty?facultyAvailability(selectedFaculty,$('date')?.value||s.date):{available:null,conflicts:[]},avLine=selectedFaculty?(av.available===false?`<div class="instructor-availability no">Unavailable: ${escapeHtml(availabilityDetail(av))}</div>`:`<div class="instructor-availability ok">Available in AFC tracker for this date.</div>`):'';return `<div class="instructor-line" data-instructor-row="${i}"><div><select class="form-select instructor-select" data-instructor-select="${i}" ${isAdmin?'':'disabled'}>${options}</select><div class="instructor-role-note">${escapeHtml(meta)}</div>${avLine}</div>${isAdmin?`<button type="button" class="instructor-remove" data-instructor-remove="${i}">Remove</button>`:''}</div>`;
       }).join('');
       document.querySelectorAll('[data-instructor-select]').forEach(el=>el.onchange=e=>{
         const i=Number(e.target.dataset.instructorSelect); const row=editorAssignments[i]; if(!row)return; const v=e.target.value;
@@ -1262,12 +1275,13 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
         ${input('start','Start','time',s.start)}
         ${input('end','End','time',s.end)}
         ${input('topic','Topic','text',s.topic,'full')}
-        <div class="form-field instructor-editor"><label class="form-label">Instructor(s)</label><div id="instructor-lines" class="instructor-lines"></div>${currentUser?.role==='admin'?'<button type="button" class="btn btn-secondary instructor-add" id="add-instructor-line">+ Add instructor</button><div class="instructor-note">One instructor per line. Select from the active faculty directory. Add/remove controls are administrator-only. Existing teaching role and DOE credit stay with the line when you change the selected faculty.</div>':'<div class="instructor-note">Instructor assignments are managed by administrators.</div>'}</div>
+        <div class="form-field instructor-editor"><label class="form-label">Instructor(s)</label><div id="instructor-lines" class="instructor-lines"></div>${currentUser?.role==='admin'?'<button type="button" class="btn btn-secondary instructor-add" id="add-instructor-line">+ Add instructor</button><div class="instructor-note">One instructor per line. Select from the active faculty directory. AFC availability is checked against the session date; unavailable selections show a warning but admins may override. Add/remove controls are administrator-only. Existing teaching role and DOE credit stay with the line when you change the selected faculty.</div>':'<div class="instructor-note">Instructor assignments are managed by administrators.</div>'}</div>
         ${input('room','Room','text',s.room)}
       </div></div>
       <div class="modal-footer"><div>${existing ? '<button type="button" class="btn-danger-text" id="delete-session">Delete Session</button>' : ''}</div><div><button type="button" class="btn btn-secondary" id="cancel-session">Cancel</button> <button class="btn btn-primary" type="submit">Save Live Session</button></div></div>
       </form>`);
     renderInstructorEditor();
+    if($('date')){ $('date').addEventListener('change',renderInstructorEditor); $('date').addEventListener('input',renderInstructorEditor); }
     if($('add-instructor-line')) $('add-instructor-line').onclick=()=>{
       const type=$('type')?.value||s.type,start=$('start')?.value||s.start,end=$('end')?.value||s.end,topic=$('topic')?.value||s.topic;
       const role=defaultTeachingRole(type),h=blockHours(start,end),rate=doeRateForRole(role);
@@ -1281,6 +1295,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
       const pos = academicPositionForDate(date);
       const topic=form.get('topic'), type=form.get('type'), start=form.get('start'), end=form.get('end');
       const assignments=finalizeInstructorAssignments(editorAssignments,type,start,end,topic);
+      if(currentUser?.role==='admin'){const conflicts=assignments.map(a=>({a,f:facultyDirectory.find(x=>String(x.__id)===String(a.ucid||''))})).filter(x=>x.f).map(x=>({...x,av:facultyAvailability(x.f,String(form.get('date')))})).filter(x=>x.av.available===false);if(conflicts.length){const msg=conflicts.map(x=>`- ${x.a.name}: ${availabilityDetail(x.av)}`).join('\n');if(!confirm(`AFC availability warning for ${form.get('date')}:\n\n${msg}\n\nSave this assignment anyway?`))return;}}
       const next = {
         id: existing?.id || `S${Date.now()}`,
         date: form.get('date'), week:pos.week, semester:pos.semester, year:Number(form.get('year')),
@@ -1575,9 +1590,9 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
       <form id="auth-setup-form"><div class="modal-body">
         <div class="login-cheatsheet">
           <strong>Firebase test project:</strong> Tester Teaching (<code>tester-teaching</code>)<br><br>
-          <strong>V9.2 authorization + synchronized admin SWAP + instructor-line editor:</strong><br>
+          <strong>V9.3 authorization + synchronized admin SWAP + AFC availability:</strong><br>
           1. User signs in with Email/Password or Phone.<br>
-          2. V9.2 reads <code>users/{Firebase UID}</code> from Firestore; admin users also load the faculty directory for SWAP and instructor selection.<br>
+          2. V9.3 reads <code>users/{Firebase UID}</code> from Firestore; admin users also load the faculty directory, Away from Campus records, SWAP tools and instructor selection.<br>
           3. <code>active: true</code> is required.<br>
           4. <code>role: "viewer"</code> = view only; <code>role: "editor"</code> = view + add/edit/delete.<br><br>
           The page does not yet write timetable sessions to Firestore; only the user role document is read. Source schedule data is loaded from scheduleData.js.
@@ -1646,7 +1661,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
   function openUserManager() {
     if (currentUser?.role !== 'admin') return;
     showModal(`
-      <div class="modal-header"><div class="modal-title">Role Management</div><div class="modal-subtitle">V9.2 keeps user-role management unchanged. Open a timetable block to access SWAP Faculty; instructor add/remove controls are admin-only.</div></div>
+      <div class="modal-header"><div class="modal-title">Role Management</div><div class="modal-subtitle">V9.3 keeps user-role management unchanged. Open a timetable block to access SWAP Faculty; admin instructor selection now shows AFC availability for the session date.</div></div>
       <div class="modal-body">
         <div class="login-cheatsheet">Manage roles in <strong>Firebase Console &gt; Firestore &gt; users</strong>.<br><br>Each document ID is the Firebase Authentication UID. Use <code>active: true</code> and role <code>viewer</code>, <code>editor</code>, or <code>admin</code>.</div>
       </div><div class="modal-footer"><span></span><button class="btn btn-secondary" id="users-close">Close</button></div>`);
