@@ -109,9 +109,78 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
   
 /* V9.5 Firestore-only + AFC + timetable conflict availability in admin assignment tools */
 .availability-pill{display:inline-block;padding:2px 6px;border-radius:999px;font-size:9.5px;font-weight:850;border:1px solid var(--border);white-space:nowrap}.availability-ok{background:#ecfdf3;color:#166534;border-color:#a7d7b5}.availability-no{background:#fff1f2;color:#b91c1c;border-color:#f3b4ba}.availability-none{background:var(--surface-2);color:var(--text-3)}.availability-detail{font-size:9.5px;line-height:1.35;margin-top:3px}.availability-detail.no{color:#b91c1c;font-weight:700}.availability-detail.ok{color:#166534}.swap-unavailable td{background:#fff9f9}.dark .swap-unavailable td{background:#2a1719}.instructor-availability{font-size:9.5px;line-height:1.35;margin-top:3px}.instructor-availability.no{color:#b91c1c;font-weight:750}.instructor-availability.ok{color:#166534}.instructor-select option{font-weight:400}
+
+
+/* V9.6 UCalgary-inspired presentation layer. Uses institutional red/gold, clear structure and restrained spacing. */
+:root{
+  --uc-red:#d6001c;--uc-red-dark:#a6192e;--uc-gold:#ffcd00;--uc-black:#171717;--uc-warm-grey:#f5f4f2;
+  --bg:#f6f6f5;--surface:#ffffff;--surface-2:#f7f7f6;--surface-3:#ededeb;
+  --border:#d7d7d4;--border-2:#bdbdb8;--text:#171717;--text-2:#3f3f3d;--text-3:#6b6b67;
+  --accent:var(--uc-red);--accent-2:var(--uc-red-dark);--accent-light:#fff1f2;--accent-mid:#c8102e;
+  --radius:4px;--radius-lg:6px;--shadow:0 1px 2px rgba(0,0,0,.06);--shadow-lg:0 12px 34px rgba(0,0,0,.16);
+}
+body{font-family:"Segoe UI",Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text)}
+.ucalgary-masthead{background:#fff;border-top:7px solid var(--uc-red)}
+.ucalgary-masthead-inner{min-height:72px;display:flex;align-items:center;justify-content:space-between;gap:24px;padding:12px 24px;max-width:1700px;margin:0 auto}
+.ucalgary-lockup{border-left:5px solid var(--uc-red);padding-left:14px;line-height:1.05}
+.ucalgary-wordmark{font-size:18px;font-weight:850;letter-spacing:.055em;color:#111}
+.ucalgary-faculty{font-size:13px;font-weight:650;color:#555;margin-top:6px}
+.ucalgary-product{font-size:13px;font-weight:700;color:#333;text-align:right}
+.ucalgary-gold-rule{height:4px;background:var(--uc-gold)}
+.test-banner{background:#fff7d6;border-color:#e1bd00;color:#2d2d2b;height:34px}
+.test-banner strong{color:#7a0019}
+#auth-setup-btn{border-color:#8f6d00!important;background:#fff!important;color:#5e4b00!important}
+.filter-bar-wrap{background:#fff;box-shadow:0 2px 7px rgba(0,0,0,.08);border-bottom:1px solid #d9d9d6}
+.filter-bar-inner{padding:12px 22px 10px;gap:28px}
+.brand-block{border-right:1px solid #ddd;padding-right:24px;min-width:150px}
+.brand-line-1{font-size:12px;color:#666;font-weight:700;letter-spacing:.03em}
+.brand-line-2{font-size:25px;color:var(--uc-red);font-weight:900;letter-spacing:.02em}
+.brand-line-3{font-size:14px;color:#242424;font-weight:750}
+.course-list-btn,.pill-btn.active,.cal-view-btn.active,.btn-primary,.export-btn:hover{background:var(--uc-red);border-color:var(--uc-red);color:#fff}
+.course-list-btn:hover,.pill-btn.active:hover{background:var(--uc-red-dark);border-color:var(--uc-red-dark)}
+.pill-btn{border-radius:3px;padding:5px 11px}
+.pill-btn:hover{border-color:var(--uc-red);color:var(--uc-red)}
+.filter-block-label,.fbar-label{color:#555;font-weight:800}
+.fbar-item{border-radius:3px;border-color:#cfcfcb;background:#fff}
+.fbar-item:focus-within{border-color:var(--uc-red);box-shadow:0 0 0 2px rgba(214,0,28,.10)}
+.fbar-reset,.btn-cal-today,.btn-cal-nav{border-radius:3px}
+.fbar-reset:hover,.btn-cal-today:hover,.btn-cal-nav:hover{border-color:var(--uc-red);color:var(--uc-red);background:#fff5f5}
+.main-content{max-width:1700px;margin:0 auto;padding:18px 24px 28px}
+.cal-card,.side-panel{border-radius:5px;border-color:#d4d4d1;box-shadow:var(--shadow)}
+.cal-toolbar{border-bottom:3px solid var(--uc-gold);padding-bottom:9px}
+.cal-label-text{font-size:16px;font-weight:800}
+.side-panel-header{background:#f4f3f1;border-top:3px solid var(--uc-red)}
+.side-panel-title{font-weight:800}
+.tg-day-head,.tg-corner,.cal-dow-header{background:#f2f1ef}
+.tg-day-head{border-top:2px solid var(--uc-gold)}
+.modal-strip{background:linear-gradient(90deg,var(--uc-red) 0 74%,var(--uc-gold) 74% 100%)}
+.modal-title{font-weight:850}
+.auth-gate{background:rgba(245,244,242,.97)}
+.auth-gate-card{border-radius:4px;border-top:7px solid var(--uc-red);box-shadow:0 16px 46px rgba(0,0,0,.18)}
+.auth-gate-card:before{content:"";display:block;height:4px;background:var(--uc-gold);margin:-1px -1px 20px}
+.auth-gate-brand{color:var(--uc-red);letter-spacing:.08em;font-weight:900}
+.auth-gate-signin{background:var(--uc-red);border-color:var(--uc-red);border-radius:3px}
+.auth-gate-signin:hover{background:var(--uc-red-dark)}
+.availability-pill{border-radius:3px}
+.availability-ok{background:#f2f7f1;color:#255a2c;border-color:#a9c6a7}
+.availability-no{background:#fff0f1;color:#a6192e;border-color:#e2a2aa}
+.swap-unavailable td{background:#fff9f9}
+@media(max-width:900px){.ucalgary-masthead-inner{padding:11px 14px}.ucalgary-product{display:none}.ucalgary-wordmark{font-size:16px}.ucalgary-faculty{font-size:12px}.main-content{padding-left:12px;padding-right:12px}.brand-block{border-right:none;padding-right:0}}
+
 </style>
 </head>
 <body class="auth-locked">
+  <header class="ucalgary-masthead" aria-label="University of Calgary">
+    <div class="ucalgary-masthead-inner">
+      <div class="ucalgary-lockup">
+        <div class="ucalgary-wordmark">UNIVERSITY OF CALGARY</div>
+        <div class="ucalgary-faculty">Faculty of Veterinary Medicine</div>
+      </div>
+      <div class="ucalgary-product">Teaching Assignment &amp; Academic Scheduling</div>
+    </div>
+    <div class="ucalgary-gold-rule"></div>
+  </header>
+
   <div class="auth-gate" id="auth-gate">
     <div class="auth-gate-card">
       <div class="auth-gate-brand">UCVM</div>
@@ -127,7 +196,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
   </div>
 
   <div class="test-banner">
-    <strong id="ui-banner-label">2026-2027 SYNCED SCHEDULE · FIRESTORE ONLY V9.5</strong>
+    <strong id="ui-banner-label">2026-2027 TEACHING SCHEDULE · UCALGARY UI V9.6</strong>
     <span id="ui-banner-message">2026-27 timetable is synchronized with the Faculty Dashboard from All Faculty Summaries. Both pages use the same live Firestore sessions.</span>
     <button id="auth-setup-btn" style="padding:3px 10px;border:1px solid #9a6700;border-radius:999px;background:#fff8dc;color:#664d03;font-size:10.5px;font-weight:700">Auth Setup</button>
   </div>
@@ -138,7 +207,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
       <div class="brand-block">
         <span class="brand-line brand-line-1" id="ui-brand-year" data-ui-editable="Academic year">2026-2027</span>
         <span class="brand-line brand-line-2" id="ui-brand-name" data-ui-editable="Brand">UCVM</span>
-        <span class="brand-line brand-line-3" id="ui-brand-page" data-ui-editable="Page title">Timetable</span>
+        <span class="brand-line brand-line-3" id="ui-brand-page" data-ui-editable="Page title">Teaching Schedule</span>
         <button class="course-list-btn" id="course-list-btn" data-ui-editable="Course List button">Course List</button>
       </div>
 
@@ -477,19 +546,19 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
 
 
   // V8 UI settings are intentionally local only. Firestore is NOT used to store UI preferences.
-  const UI_SETTINGS_KEY = 'ucvm_ui_settings_v8';
+  const UI_SETTINGS_KEY = 'ucvm_ui_settings_v96';
   const DEFAULT_UI_SETTINGS = Object.freeze({
     academicYear: '2026-2027',
     brand: 'UCVM',
-    pageTitle: 'Timetable',
-    bannerLabel: '2026-2027 SYNCED SCHEDULE · FIRESTORE ONLY V9.5',
+    pageTitle: 'Teaching Schedule',
+    bannerLabel: '2026-2027 TEACHING SCHEDULE · UCALGARY UI V9.6',
     bannerMessage: '2026-27 timetable is synchronized with the Faculty Dashboard from All Faculty Summaries. Both pages use the same live Firestore sessions.',
     updatesTitle: 'Latest Updates',
     updatesSubtitle: 'Schedule source / local changes',
     exportTitle: 'Data Export',
-    accent: '#1a3a6b',
+    accent: '#d6001c',
     sidebarWidth: 320,
-    radius: 6,
+    radius: 4,
     fontSize: 14,
     density: 'normal',
     showBanner: true,
@@ -865,8 +934,8 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
     const conflicts=awayRecordsForFaculty(f).filter(x=>String(x.startDate)<=d&&d<=String(x.endDate)).sort((a,b)=>String(a.startDate).localeCompare(String(b.startDate)));
     return{available:conflicts.length===0,conflicts};
   }
-  function availabilityShort(av){if(av.available===null)return'Date not set';if(av.available)return'Available';const x=av.conflicts[0];return`Unavailable · ${x?.purpose||'Away from Campus'}`}
-  function availabilityDetail(av){if(av.available===null)return'Availability cannot be checked until a session date is set.';if(av.available)return'Available in AFC tracker for this date.';return av.conflicts.map(x=>`${x.purpose||'Away from Campus'} (${x.startDate}${x.endDate&&x.endDate!==x.startDate?' to '+x.endDate:''})`).join('; ')}
+  function availabilityShort(av){if(av.available===null)return'Date not set';if(av.available)return'Available';return'Unavailable'}
+  function availabilityDetail(av){if(av.available===null)return'Availability cannot be checked until a session date is set.';if(av.available)return'Available';return'Unavailable'}
 
   function availabilityTimeMinutes(value){
     const raw=String(value||'').trim(); if(!raw)return null;
@@ -912,13 +981,13 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
   function assignmentAvailabilityShort(av){
     if(av.available===true)return'Available';
     if(av.available===null)return'Check needed';
-    if(av.afc?.available===false&&av.tt?.available===false)return'Unavailable · AFC + timetable conflict';
+    if(av.afc?.available===false&&av.tt?.available===false)return'Unavailable · timetable conflict';
     if(av.tt?.available===false)return`Conflict · ${av.tt.conflicts[0]?.course||'another course'}`;
-    return`Away · ${av.afc?.conflicts?.[0]?.purpose||'AFC'}`;
+    return'Unavailable';
   }
   function assignmentAvailabilityDetail(av,dateYmd,start,end){
     const parts=[];
-    if(av.afc?.available===false)parts.push(`AFC: ${availabilityDetail(av.afc)}`); else if(av.afc?.available===true)parts.push('AFC clear');
+    if(av.afc?.available===false)parts.push('AFC: Unavailable');
     if(av.tt?.available===false)parts.push(`Timetable conflict: ${av.tt.conflicts.map(timetableConflictLabel).join('; ')}`);
     else if(av.tt?.available===true)parts.push(`Timetable clear for ${start||'—'}-${end||'—'}`);
     else if(av.tt?.reason==='target-time')parts.push('Timetable overlap cannot be fully checked because this session time is not specified');
@@ -994,7 +1063,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
           <label class="form-field"><span class="form-label">Swap out current faculty assignment</span><select class="form-select" id="swap-out-select">${assignments.map((a,i)=>`<option value="${i}" ${i===selected?'selected':''}>${escapeHtml(a.name||'Unassigned')} · ${escapeHtml(a.role||s.type||'')} · ${swapPct(swapAssignmentCredit(a))}</option>`).join('')}</select></label>
           <div class="swap-current-card"><div class="swap-current-title">Current assignment being removed</div><div class="swap-current-line"><span><strong>${escapeHtml(outgoing?.name||'Unknown')}</strong></span><span>Role: <strong>${escapeHtml(outgoing?.role||s.type||'')}</strong></span><span>DOE credit: <strong>${credit===null?'Unrated':swapPct(credit)}</strong></span><span>Current Assigned DOE: <strong>${swapPct(outCurrent)}</strong></span><span>After removal: <strong>${credit===null?'Unrated impact':swapPct(outAfter)}</strong></span></div></div>
           <div class="swap-search-row"><label class="form-field"><span class="form-label">Find replacement faculty</span><input class="form-input" id="swap-search" placeholder="Search name, specialty, teaching area, UCID..."></label></div>
-          <div class="swap-help">Each candidate checks <strong>both AFC and the live timetable for overlapping courses at this exact date/time</strong>, then shows current live Assigned Teaching DOE and projected Assigned DOE after this block is added. Contract Teaching DOE is shown when it exists in the faculty record. A timetable conflict or AFC absence is flagged as unavailable; uncertain records with an unspecified time are marked Check needed. Administrators may override after an explicit warning. The replacement inherits this assignment's role, credited hours and DOE rate. ${credit===null?'<strong>This activity has no numeric DOE rate in the source, so the projected DOE cannot be calculated.</strong>':''}</div>
+          <div class="swap-help">Each candidate checks <strong>both AFC and the live timetable for overlapping courses at this exact date/time</strong>. For privacy, AFC only reports <strong>Unavailable</strong>; AFC reasons and dates are not shown here, then shows current live Assigned Teaching DOE and projected Assigned DOE after this block is added. Contract Teaching DOE is shown when it exists in the faculty record. A timetable conflict or AFC absence is flagged as unavailable; uncertain records with an unspecified time are marked Check needed. Administrators may override after an explicit warning. The replacement inherits this assignment's role, credited hours and DOE rate. ${credit===null?'<strong>This activity has no numeric DOE rate in the source, so the projected DOE cannot be calculated.</strong>':''}</div>
           <div class="swap-table-wrap"><table class="swap-table"><thead><tr><th>Faculty</th><th>Availability</th><th>Contract Teaching DOE</th><th>Current Assigned DOE</th><th>Projected After Swap</th><th>Remaining / Over</th><th>DOE Status</th><th></th></tr></thead><tbody id="swap-candidate-body"></tbody></table></div>
         </div>
         <div class="modal-footer"><span class="form-hint">Swap is written to Firestore and logged in session_change_log.</span><button class="btn btn-secondary" id="swap-cancel">Cancel</button></div>`);
@@ -1358,7 +1427,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
         ${input('start','Start','time',s.start)}
         ${input('end','End','time',s.end)}
         ${input('topic','Topic','text',s.topic,'full')}
-        <div class="form-field instructor-editor"><label class="form-label">Instructor(s)</label><div id="instructor-lines" class="instructor-lines"></div>${currentUser?.role==='admin'?'<button type="button" class="btn btn-secondary instructor-add" id="add-instructor-line">+ Add instructor</button><div class="instructor-note">One instructor per line. Select from the active faculty directory. Availability checks both Away from Campus and overlapping live timetable courses at the selected date and time. Unavailable or uncertain selections show a warning; admins may override. Add/remove controls are administrator-only. Existing teaching role and DOE credit stay with the line when you change the selected faculty.</div>':'<div class="instructor-note">Instructor assignments are managed by administrators.</div>'}</div>
+        <div class="form-field instructor-editor"><label class="form-label">Instructor(s)</label><div id="instructor-lines" class="instructor-lines"></div>${currentUser?.role==='admin'?'<button type="button" class="btn btn-secondary instructor-add" id="add-instructor-line">+ Add instructor</button><div class="instructor-note">One instructor per line. Select from the active faculty directory. Availability checks both Away from Campus and overlapping live timetable courses at the selected date and time. AFC only reports Unavailable; timetable conflicts continue to show the conflicting course/time. Unavailable or uncertain selections show a warning; admins may override. Add/remove controls are administrator-only. Existing teaching role and DOE credit stay with the line when you change the selected faculty.</div>':'<div class="instructor-note">Instructor assignments are managed by administrators.</div>'}</div>
         ${input('room','Room','text',s.room)}
       </div></div>
       <div class="modal-footer"><div>${existing ? '<button type="button" class="btn-danger-text" id="delete-session">Delete Session</button>' : ''}</div><div><button type="button" class="btn btn-secondary" id="cancel-session">Cancel</button> <button class="btn btn-primary" type="submit">Save Live Session</button></div></div>
@@ -1380,7 +1449,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
       const assignments=finalizeInstructorAssignments(editorAssignments,type,start,end,topic);
       if(currentUser?.role==='admin'){
         const checks=assignments.map(a=>({a,f:facultyDirectory.find(x=>String(x.__id)===String(a.ucid||''))})).filter(x=>x.f).map(x=>({...x,av:facultyAssignmentAvailability(x.f,String(form.get('date')),start,end,existing?.id||'')})).filter(x=>x.av.available!==true);
-        if(checks.length){const msg=checks.map(x=>`- ${x.a.name}: ${assignmentAvailabilityDetail(x.av,String(form.get('date')),start,end)}`).join('\n');if(!confirm(`Faculty availability warning for ${form.get('date')} ${start}-${end}:\n\n${msg}\n\nThis checks both AFC and overlapping live timetable courses. Save this assignment anyway?`))return;}
+        if(checks.length){const msg=checks.map(x=>`- ${x.a.name}: ${assignmentAvailabilityDetail(x.av,String(form.get('date')),start,end)}`).join('\n');if(!confirm(`Faculty availability warning for ${form.get('date')} ${start}-${end}:\n\n${msg}\n\nThis checks both AFC and overlapping live timetable courses. AFC reasons are intentionally hidden here. Save this assignment anyway?`))return;}
       }
       const next = {
         id: existing?.id || `S${Date.now()}`,
@@ -1676,9 +1745,9 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
       <form id="auth-setup-form"><div class="modal-body">
         <div class="login-cheatsheet">
           <strong>Firebase test project:</strong> Tester Teaching (<code>tester-teaching</code>)<br><br>
-          <strong>V9.5 Firestore-only authorization + synchronized admin SWAP + AFC + timetable availability:</strong><br>
+          <strong>V9.6 UCalgary UI + Firestore-only authorization + synchronized admin SWAP + AFC + timetable availability:</strong><br>
           1. User signs in with Email/Password or Phone.<br>
-          2. V9.5 reads <code>users/{Firebase UID}</code> from Firestore; after authorization, the timetable loads exclusively from <code>sessions</code>. Admin users also load the faculty directory, Away from Campus records, live timetable conflicts, SWAP tools and instructor selection.<br>
+          2. V9.6 reads <code>users/{Firebase UID}</code> from Firestore; after authorization, the timetable loads exclusively from <code>sessions</code>. Admin users also load the faculty directory, Away from Campus records, live timetable conflicts, SWAP tools and instructor selection.<br>
           3. <code>active: true</code> is required.<br>
           4. <code>role: "viewer"</code> = view only; <code>role: "editor"</code> = view + add/edit/delete.<br><br>
           Timetable reads and admin edits are Firestore-only. No Year 1/2/3 bundled schedule files are loaded by this page.
@@ -1747,7 +1816,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
   function openUserManager() {
     if (currentUser?.role !== 'admin') return;
     showModal(`
-      <div class="modal-header"><div class="modal-title">Role Management</div><div class="modal-subtitle">V9.5 keeps user-role management unchanged. The timetable is Firestore-only. Open a timetable block to access SWAP Faculty; admin instructor selection checks both AFC and overlapping courses in the live timetable.</div></div>
+      <div class="modal-header"><div class="modal-title">Role Management</div><div class="modal-subtitle">V9.6 keeps user-role management unchanged. The timetable is Firestore-only. Open a timetable block to access SWAP Faculty; admin instructor selection checks both AFC and overlapping courses in the live timetable.</div></div>
       <div class="modal-body">
         <div class="login-cheatsheet">Manage roles in <strong>Firebase Console &gt; Firestore &gt; users</strong>.<br><br>Each document ID is the Firebase Authentication UID. Use <code>active: true</code> and role <code>viewer</code>, <code>editor</code>, or <code>admin</code>.</div>
       </div><div class="modal-footer"><span></span><button class="btn btn-secondary" id="users-close">Close</button></div>`);
