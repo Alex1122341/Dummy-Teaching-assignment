@@ -107,7 +107,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
 @media(max-width:768px){body.ui-banner-hidden .filter-bar-wrap{top:0}}
 
   
-/* V9.3 AFC availability in admin assignment tools */
+/* V9.4 AFC + timetable conflict availability in admin assignment tools */
 .availability-pill{display:inline-block;padding:2px 6px;border-radius:999px;font-size:9.5px;font-weight:850;border:1px solid var(--border);white-space:nowrap}.availability-ok{background:#ecfdf3;color:#166534;border-color:#a7d7b5}.availability-no{background:#fff1f2;color:#b91c1c;border-color:#f3b4ba}.availability-none{background:var(--surface-2);color:var(--text-3)}.availability-detail{font-size:9.5px;line-height:1.35;margin-top:3px}.availability-detail.no{color:#b91c1c;font-weight:700}.availability-detail.ok{color:#166534}.swap-unavailable td{background:#fff9f9}.dark .swap-unavailable td{background:#2a1719}.instructor-availability{font-size:9.5px;line-height:1.35;margin-top:3px}.instructor-availability.no{color:#b91c1c;font-weight:750}.instructor-availability.ok{color:#166534}.instructor-select option{font-weight:400}
 </style>
 </head>
@@ -127,7 +127,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
   </div>
 
   <div class="test-banner">
-    <strong id="ui-banner-label">2026-2027 SYNCED SCHEDULE · ADMIN AVAILABILITY V9.3</strong>
+    <strong id="ui-banner-label">2026-2027 SYNCED SCHEDULE · ADMIN AVAILABILITY V9.4</strong>
     <span id="ui-banner-message">2026-27 timetable is synchronized with the Faculty Dashboard from All Faculty Summaries. Both pages use the same live Firestore sessions.</span>
     <button id="auth-setup-btn" style="padding:3px 10px;border:1px solid #9a6700;border-radius:999px;background:#fff8dc;color:#664d03;font-size:10.5px;font-weight:700">Auth Setup</button>
   </div>
@@ -487,7 +487,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
     academicYear: '2026-2027',
     brand: 'UCVM',
     pageTitle: 'Timetable',
-    bannerLabel: '2026-2027 SYNCED SCHEDULE · ADMIN AVAILABILITY V9.3',
+    bannerLabel: '2026-2027 SYNCED SCHEDULE · ADMIN AVAILABILITY V9.4',
     bannerMessage: '2026-27 timetable is synchronized with the Faculty Dashboard from All Faculty Summaries. Both pages use the same live Firestore sessions.',
     updatesTitle: 'Latest Updates',
     updatesSubtitle: 'Schedule source / local changes',
@@ -845,6 +845,65 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
   function availabilityShort(av){if(av.available===null)return'Date not set';if(av.available)return'Available';const x=av.conflicts[0];return`Unavailable · ${x?.purpose||'Away from Campus'}`}
   function availabilityDetail(av){if(av.available===null)return'Availability cannot be checked until a session date is set.';if(av.available)return'Available in AFC tracker for this date.';return av.conflicts.map(x=>`${x.purpose||'Away from Campus'} (${x.startDate}${x.endDate&&x.endDate!==x.startDate?' to '+x.endDate:''})`).join('; ')}
 
+  function availabilityTimeMinutes(value){
+    const raw=String(value||'').trim(); if(!raw)return null;
+    const m=raw.match(/^(\d{1,2}):(\d{2})(?:\s*([AP]M))?$/i); if(!m)return null;
+    let h=Number(m[1]),min=Number(m[2]); if(!Number.isFinite(h)||!Number.isFinite(min)||min<0||min>59)return null;
+    const ap=(m[3]||'').toUpperCase(); if(ap){if(h<1||h>12)return null;if(ap==='AM'&&h===12)h=0;if(ap==='PM'&&h!==12)h+=12}else if(h<0||h>23)return null;
+    return h*60+min;
+  }
+  function availabilityIntervalsOverlap(aStart,aEnd,bStart,bEnd){
+    const as=availabilityTimeMinutes(aStart),ae=availabilityTimeMinutes(aEnd),bs=availabilityTimeMinutes(bStart),be=availabilityTimeMinutes(bEnd);
+    if([as,ae,bs,be].some(v=>v===null)||ae<=as||be<=bs)return false;
+    return as<be&&bs<ae;
+  }
+  function sessionHasFaculty(sess,f){
+    const id=String(f?.__id||''); const aliases=swapFacultyAliases(f);
+    const arr=Array.isArray(sess?.assignments)?sess.assignments:[];
+    if(arr.some(a=>String(a?.ucid||'')===id || aliases.has(swapNameKey(a?.name))))return true;
+    return splitInstructorNames(sess?.instructor||'').some(n=>aliases.has(swapNameKey(n)));
+  }
+  function timetableAvailability(f,dateYmd,start,end,excludeSessionId=''){
+    const d=String(dateYmd||'').slice(0,10),targetStart=availabilityTimeMinutes(start),targetEnd=availabilityTimeMinutes(end);
+    if(!d)return{available:null,conflicts:[],possibleConflicts:[],reason:'date'};
+    const sameDay=sessions.filter(sess=>String(sess?.id||'')!==String(excludeSessionId||'')&&String(sess?.date||'').slice(0,10)===d&&sessionHasFaculty(sess,f));
+    if(targetStart===null||targetEnd===null||targetEnd<=targetStart)return{available:null,conflicts:[],possibleConflicts:sameDay,reason:'target-time'};
+    const conflicts=[],possibleConflicts=[];
+    for(const sess of sameDay){
+      const ss=availabilityTimeMinutes(sess.start),se=availabilityTimeMinutes(sess.end);
+      if(sess.timeUnknown||ss===null||se===null||se<=ss){possibleConflicts.push(sess);continue}
+      if(availabilityIntervalsOverlap(start,end,sess.start,sess.end))conflicts.push(sess);
+    }
+    return{available:conflicts.length?false:(possibleConflicts.length?null:true),conflicts,possibleConflicts,reason:conflicts.length?'overlap':(possibleConflicts.length?'other-time-unknown':'clear')};
+  }
+  function facultyAssignmentAvailability(f,dateYmd,start,end,excludeSessionId=''){
+    const afc=facultyAvailability(f,dateYmd),tt=timetableAvailability(f,dateYmd,start,end,excludeSessionId);
+    const unavailable=afc.available===false||tt.available===false;
+    return{available:unavailable?false:(tt.available===null?null:true),afc,tt};
+  }
+  function timetableConflictLabel(sess){
+    const course=[sess?.course,sess?.courseName].filter(Boolean).join(' · '),topic=sess?.topic?` · ${sess.topic}`:'';
+    const time=sess?.timeUnknown||!sess?.start||!sess?.end?'time not specified':`${sess.start}-${sess.end}`;
+    return `${course||'Scheduled course'}${topic} (${time})`;
+  }
+  function assignmentAvailabilityShort(av){
+    if(av.available===true)return'Available';
+    if(av.available===null)return'Check needed';
+    if(av.afc?.available===false&&av.tt?.available===false)return'Unavailable · AFC + timetable conflict';
+    if(av.tt?.available===false)return`Conflict · ${av.tt.conflicts[0]?.course||'another course'}`;
+    return`Away · ${av.afc?.conflicts?.[0]?.purpose||'AFC'}`;
+  }
+  function assignmentAvailabilityDetail(av,dateYmd,start,end){
+    const parts=[];
+    if(av.afc?.available===false)parts.push(`AFC: ${availabilityDetail(av.afc)}`); else if(av.afc?.available===true)parts.push('AFC clear');
+    if(av.tt?.available===false)parts.push(`Timetable conflict: ${av.tt.conflicts.map(timetableConflictLabel).join('; ')}`);
+    else if(av.tt?.available===true)parts.push(`Timetable clear for ${start||'—'}-${end||'—'}`);
+    else if(av.tt?.reason==='target-time')parts.push('Timetable overlap cannot be fully checked because this session time is not specified');
+    if(av.tt?.possibleConflicts?.length)parts.push(`Time-check needed: ${av.tt.possibleConflicts.map(timetableConflictLabel).join('; ')}`);
+    if(!parts.length)parts.push(`Availability cannot be checked for ${dateYmd||'this date'}`);
+    return parts.join(' · ');
+  }
+
   function unsubscribeFacultyDirectory(){ if(facultyUnsubscribe){try{facultyUnsubscribe()}catch(_){ } facultyUnsubscribe=null;} facultyDirectory=[]; }
   function subscribeFacultyDirectory(){
     if(!db||currentUser?.role!=='admin'){unsubscribeFacultyDirectory();return;}
@@ -912,7 +971,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
           <label class="form-field"><span class="form-label">Swap out current faculty assignment</span><select class="form-select" id="swap-out-select">${assignments.map((a,i)=>`<option value="${i}" ${i===selected?'selected':''}>${escapeHtml(a.name||'Unassigned')} · ${escapeHtml(a.role||s.type||'')} · ${swapPct(swapAssignmentCredit(a))}</option>`).join('')}</select></label>
           <div class="swap-current-card"><div class="swap-current-title">Current assignment being removed</div><div class="swap-current-line"><span><strong>${escapeHtml(outgoing?.name||'Unknown')}</strong></span><span>Role: <strong>${escapeHtml(outgoing?.role||s.type||'')}</strong></span><span>DOE credit: <strong>${credit===null?'Unrated':swapPct(credit)}</strong></span><span>Current Assigned DOE: <strong>${swapPct(outCurrent)}</strong></span><span>After removal: <strong>${credit===null?'Unrated impact':swapPct(outAfter)}</strong></span></div></div>
           <div class="swap-search-row"><label class="form-field"><span class="form-label">Find replacement faculty</span><input class="form-input" id="swap-search" placeholder="Search name, specialty, teaching area, UCID..."></label></div>
-          <div class="swap-help">Each candidate shows <strong>AFC availability for this session date</strong>, current live Assigned Teaching DOE and projected Assigned DOE after this block is added. Contract Teaching DOE is shown when it exists in the faculty record. Unavailable faculty remain selectable by an administrator, but V9.3 requires an explicit warning confirmation. The replacement inherits this assignment's role, credited hours and DOE rate. ${credit===null?'<strong>This activity has no numeric DOE rate in the source, so the projected DOE cannot be calculated.</strong>':''}</div>
+          <div class="swap-help">Each candidate checks <strong>both AFC and the live timetable for overlapping courses at this exact date/time</strong>, then shows current live Assigned Teaching DOE and projected Assigned DOE after this block is added. Contract Teaching DOE is shown when it exists in the faculty record. A timetable conflict or AFC absence is flagged as unavailable; uncertain records with an unspecified time are marked Check needed. Administrators may override after an explicit warning. The replacement inherits this assignment's role, credited hours and DOE rate. ${credit===null?'<strong>This activity has no numeric DOE rate in the source, so the projected DOE cannot be calculated.</strong>':''}</div>
           <div class="swap-table-wrap"><table class="swap-table"><thead><tr><th>Faculty</th><th>Availability</th><th>Contract Teaching DOE</th><th>Current Assigned DOE</th><th>Projected After Swap</th><th>Remaining / Over</th><th>DOE Status</th><th></th></tr></thead><tbody id="swap-candidate-body"></tbody></table></div>
         </div>
         <div class="modal-footer"><span class="form-hint">Swap is written to Firestore and logged in session_change_log.</span><button class="btn btn-secondary" id="swap-cancel">Cancel</button></div>`);
@@ -927,12 +986,12 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
           if(existingIds.has(String(f.__id)))return false;
           if(q){const hay=swapNameKey([swapFacultyName(f),f.ucid,f.email,f.teachingArea,f.teachingAreaEmphasis,f.boardSpecialties,f.currentTitle,f.rank].filter(Boolean).join(' '));if(!hay.includes(q))return false;}
           return true;
-        }).sort((a,b)=>{const aa=facultyAvailability(a,s.date),bb=facultyAvailability(b,s.date);const av=(aa.available===false?1:0)-(bb.available===false?1:0);return av||swapFacultyName(a).localeCompare(swapFacultyName(b))});
+        }).sort((a,b)=>{const aa=facultyAssignmentAvailability(a,s.date,s.start,s.end,s.id),bb=facultyAssignmentAvailability(b,s.date,s.start,s.end,s.id);const rank=x=>x.available===true?0:(x.available===null?1:2);const av=rank(aa)-rank(bb);return av||swapFacultyName(a).localeCompare(swapFacultyName(b))});
         $('swap-candidate-body').innerHTML=rows.map(f=>{
-          const st=doeState.get(String(f.__id)); const current=st?.current??null; const projected=(current!==null&&credit!==null)?current+credit:null; const status=swapStatus(st?.contract??null,projected); const rem=status.remaining, av=facultyAvailability(f,s.date);
+          const st=doeState.get(String(f.__id)); const current=st?.current??null; const projected=(current!==null&&credit!==null)?current+credit:null; const status=swapStatus(st?.contract??null,projected); const rem=status.remaining, av=facultyAssignmentAvailability(f,s.date,s.start,s.end,s.id);
           const afterText=credit===null?(current===null?'—':`${swapPct(current)} + unrated`):swapPct(projected);
           const remText=rem===null?'—':(rem>=0?`${rem.toFixed(2)}% remaining`:`${Math.abs(rem).toFixed(2)}% over`);
-          const avHtml=av.available===false?`<span class="availability-pill availability-no">Unavailable</span><div class="availability-detail no">${escapeHtml(availabilityDetail(av))}</div>`:`<span class="availability-pill availability-ok">Available</span><div class="availability-detail ok">AFC clear</div>`;
+          const avHtml=av.available===false?`<span class="availability-pill availability-no">Unavailable</span><div class="availability-detail no">${escapeHtml(assignmentAvailabilityDetail(av,s.date,s.start,s.end))}</div>`:av.available===null?`<span class="availability-pill availability-none">Check needed</span><div class="availability-detail">${escapeHtml(assignmentAvailabilityDetail(av,s.date,s.start,s.end))}</div>`:`<span class="availability-pill availability-ok">Available</span><div class="availability-detail ok">${escapeHtml(assignmentAvailabilityDetail(av,s.date,s.start,s.end))}</div>`;
           return `<tr class="${av.available===false?'swap-unavailable':''}"><td><strong>${escapeHtml(swapFacultyName(f))}</strong><br><span class="form-hint">${escapeHtml(f.teachingArea||f.teachingAreaEmphasis||f.currentTitle||'')} ${f.ucid?`· ${escapeHtml(f.ucid)}`:''}</span></td><td>${avHtml}</td><td class="swap-num">${swapPct(st?.contract??null)}</td><td class="swap-num">${swapPct(current)}</td><td class="swap-num swap-projected">${afterText}</td><td class="swap-num">${remText}</td><td><span class="swap-status ${status.cls}">${status.label}</span></td><td><button class="btn btn-primary btn-swap-confirm" data-swap-faculty="${escapeHtml(f.__id)}">SWAP</button></td></tr>`;
         }).join('')||'<tr><td colspan="8" style="padding:20px;text-align:center;color:var(--text-3)">No faculty match this search.</td></tr>';
         document.querySelectorAll('[data-swap-faculty]').forEach(btn=>btn.onclick=()=>performFacultySwap(s,assignments,selected,btn.dataset.swapFaculty,doeState));
@@ -947,9 +1006,9 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
     const replacement=facultyDirectory.find(f=>String(f.__id)===String(newFacultyId)); if(!replacement)return;
     const outgoing=assignments[outIndex]; if(!outgoing)return;
     const oldFaculty=facultyForAssignment(outgoing); const oldName=outgoing.name||swapFacultyName(oldFaculty)||'Unknown'; const newName=swapFacultyName(replacement);
-    const credit=swapAssignmentCredit(outgoing), currentNew=doeState.get(String(replacement.__id))?.current??null, projectedNew=(currentNew!==null&&credit!==null)?currentNew+credit:null, av=facultyAvailability(replacement,session.date);
-    const awayWarning=av.available===false?`\n\nWARNING: ${newName} is marked UNAVAILABLE in AFC on ${session.date}:\n${availabilityDetail(av)}\n\nAdmin override?`:'';
-    if(!confirm(`Swap ${oldName} to ${newName} for ${session.course} - ${session.topic}?\n\n${credit===null?'DOE impact: this activity is unrated.':`DOE credit transferred: ${credit.toFixed(2)}%\n${newName}: ${currentNew===null?'current DOE unavailable':currentNew.toFixed(2)+'%'} → ${projectedNew===null?'projected unavailable':projectedNew.toFixed(2)+'%'}`}${awayWarning}`))return;
+    const credit=swapAssignmentCredit(outgoing), currentNew=doeState.get(String(replacement.__id))?.current??null, projectedNew=(currentNew!==null&&credit!==null)?currentNew+credit:null, av=facultyAssignmentAvailability(replacement,session.date,session.start,session.end,session.id);
+    const availabilityWarning=av.available===false?`\n\nWARNING: ${newName} is not available for ${session.date} ${session.start||''}-${session.end||''}:\n${assignmentAvailabilityDetail(av,session.date,session.start,session.end)}\n\nAdmin override?`:av.available===null?`\n\nCHECK NEEDED before assigning ${newName}:\n${assignmentAvailabilityDetail(av,session.date,session.start,session.end)}\n\nContinue as admin?`:'';
+    if(!confirm(`Swap ${oldName} to ${newName} for ${session.course} - ${session.topic}?\n\n${credit===null?'DOE impact: this activity is unrated.':`DOE credit transferred: ${credit.toFixed(2)}%\n${newName}: ${currentNew===null?'current DOE unavailable':currentNew.toFixed(2)+'%'} → ${projectedNew===null?'projected unavailable':projectedNew.toFixed(2)+'%'}`}${availabilityWarning}`))return;
     const nextAssignments=assignments.map((a,i)=>i===outIndex?{...a,ucid:String(replacement.__id),name:newName,category:'Faculty',source:'Admin SWAP',swappedFrom:{ucid:String(outgoing.ucid||oldFaculty?.__id||''),name:oldName},swappedAt:new Date().toISOString()}:a);
     const next={...session,assignments:nextAssignments,instructor:nextAssignments.map(a=>a.name).filter(Boolean).join('; '),labDetails:labDetailsFromAssignments(session.type,nextAssignments,session.topic),sourceSystem:'Synchronized live timetable'};
     try{
@@ -1251,9 +1310,10 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
         let options='';
         if(!currentId&&currentName&&swapNameKey(currentName)!==swapNameKey('Other / Unassigned')) options+=`<option value="__current__" selected>${escapeHtml(currentName)} (source/current)</option>`;
         options+=`<option value="__unassigned__" ${!currentId&&(!currentName||swapNameKey(currentName)===swapNameKey('Other / Unassigned'))?'selected':''}>Other / Unassigned</option>`;
-        for(const f of facultyDirectory){const id=String(f.__id),selected=id===currentId,disabled=!selected&&usedIds.has(id),av=facultyAvailability(f,$('date')?.value||s.date),suffix=av.available===false?` — UNAVAILABLE: ${av.conflicts[0]?.purpose||'Away from Campus'}`:'';options+=`<option value="${escapeHtml(id)}" ${selected?'selected':''} ${disabled?'disabled':''}>${escapeHtml(swapFacultyName(f)+suffix)}</option>`}
+        const targetDate=$('date')?.value||s.date,targetStart=$('start')?.value||s.start,targetEnd=$('end')?.value||s.end,excludeId=s.id||'';
+        for(const f of facultyDirectory){const id=String(f.__id),selected=id===currentId,disabled=!selected&&usedIds.has(id),av=facultyAssignmentAvailability(f,targetDate,targetStart,targetEnd,excludeId),suffix=av.available===false?` — UNAVAILABLE: ${assignmentAvailabilityShort(av)}`:av.available===null?' — CHECK NEEDED':'';options+=`<option value="${escapeHtml(id)}" ${selected?'selected':''} ${disabled?'disabled':''}>${escapeHtml(swapFacultyName(f)+suffix)}</option>`}
         const credit=swapAssignmentCredit(a); const role=a.role||defaultTeachingRole($('type')?.value||s.type); const meta=[role,credit===null?'DOE unrated':`${Number(credit).toFixed(3)}% DOE`].filter(Boolean).join(' · ');
-        const selectedFaculty=currentId?facultyDirectory.find(f=>String(f.__id)===currentId):null,av=selectedFaculty?facultyAvailability(selectedFaculty,$('date')?.value||s.date):{available:null,conflicts:[]},avLine=selectedFaculty?(av.available===false?`<div class="instructor-availability no">Unavailable: ${escapeHtml(availabilityDetail(av))}</div>`:`<div class="instructor-availability ok">Available in AFC tracker for this date.</div>`):'';return `<div class="instructor-line" data-instructor-row="${i}"><div><select class="form-select instructor-select" data-instructor-select="${i}" ${isAdmin?'':'disabled'}>${options}</select><div class="instructor-role-note">${escapeHtml(meta)}</div>${avLine}</div>${isAdmin?`<button type="button" class="instructor-remove" data-instructor-remove="${i}">Remove</button>`:''}</div>`;
+        const selectedFaculty=currentId?facultyDirectory.find(f=>String(f.__id)===currentId):null,av=selectedFaculty?facultyAssignmentAvailability(selectedFaculty,targetDate,targetStart,targetEnd,excludeId):{available:null,afc:{available:null,conflicts:[]},tt:{available:null,conflicts:[],possibleConflicts:[]}},avLine=selectedFaculty?(av.available===false?`<div class="instructor-availability no">Unavailable: ${escapeHtml(assignmentAvailabilityDetail(av,targetDate,targetStart,targetEnd))}</div>`:av.available===null?`<div class="instructor-availability">Check needed: ${escapeHtml(assignmentAvailabilityDetail(av,targetDate,targetStart,targetEnd))}</div>`:`<div class="instructor-availability ok">Available: ${escapeHtml(assignmentAvailabilityDetail(av,targetDate,targetStart,targetEnd))}</div>`):'';return `<div class="instructor-line" data-instructor-row="${i}"><div><select class="form-select instructor-select" data-instructor-select="${i}" ${isAdmin?'':'disabled'}>${options}</select><div class="instructor-role-note">${escapeHtml(meta)}</div>${avLine}</div>${isAdmin?`<button type="button" class="instructor-remove" data-instructor-remove="${i}">Remove</button>`:''}</div>`;
       }).join('');
       document.querySelectorAll('[data-instructor-select]').forEach(el=>el.onchange=e=>{
         const i=Number(e.target.dataset.instructorSelect); const row=editorAssignments[i]; if(!row)return; const v=e.target.value;
@@ -1275,13 +1335,13 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
         ${input('start','Start','time',s.start)}
         ${input('end','End','time',s.end)}
         ${input('topic','Topic','text',s.topic,'full')}
-        <div class="form-field instructor-editor"><label class="form-label">Instructor(s)</label><div id="instructor-lines" class="instructor-lines"></div>${currentUser?.role==='admin'?'<button type="button" class="btn btn-secondary instructor-add" id="add-instructor-line">+ Add instructor</button><div class="instructor-note">One instructor per line. Select from the active faculty directory. AFC availability is checked against the session date; unavailable selections show a warning but admins may override. Add/remove controls are administrator-only. Existing teaching role and DOE credit stay with the line when you change the selected faculty.</div>':'<div class="instructor-note">Instructor assignments are managed by administrators.</div>'}</div>
+        <div class="form-field instructor-editor"><label class="form-label">Instructor(s)</label><div id="instructor-lines" class="instructor-lines"></div>${currentUser?.role==='admin'?'<button type="button" class="btn btn-secondary instructor-add" id="add-instructor-line">+ Add instructor</button><div class="instructor-note">One instructor per line. Select from the active faculty directory. Availability checks both Away from Campus and overlapping live timetable courses at the selected date and time. Unavailable or uncertain selections show a warning; admins may override. Add/remove controls are administrator-only. Existing teaching role and DOE credit stay with the line when you change the selected faculty.</div>':'<div class="instructor-note">Instructor assignments are managed by administrators.</div>'}</div>
         ${input('room','Room','text',s.room)}
       </div></div>
       <div class="modal-footer"><div>${existing ? '<button type="button" class="btn-danger-text" id="delete-session">Delete Session</button>' : ''}</div><div><button type="button" class="btn btn-secondary" id="cancel-session">Cancel</button> <button class="btn btn-primary" type="submit">Save Live Session</button></div></div>
       </form>`);
     renderInstructorEditor();
-    if($('date')){ $('date').addEventListener('change',renderInstructorEditor); $('date').addEventListener('input',renderInstructorEditor); }
+    for(const id of ['date','start','end']){if($(id)){ $(id).addEventListener('change',renderInstructorEditor); $(id).addEventListener('input',renderInstructorEditor); }}
     if($('add-instructor-line')) $('add-instructor-line').onclick=()=>{
       const type=$('type')?.value||s.type,start=$('start')?.value||s.start,end=$('end')?.value||s.end,topic=$('topic')?.value||s.topic;
       const role=defaultTeachingRole(type),h=blockHours(start,end),rate=doeRateForRole(role);
@@ -1295,7 +1355,10 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
       const pos = academicPositionForDate(date);
       const topic=form.get('topic'), type=form.get('type'), start=form.get('start'), end=form.get('end');
       const assignments=finalizeInstructorAssignments(editorAssignments,type,start,end,topic);
-      if(currentUser?.role==='admin'){const conflicts=assignments.map(a=>({a,f:facultyDirectory.find(x=>String(x.__id)===String(a.ucid||''))})).filter(x=>x.f).map(x=>({...x,av:facultyAvailability(x.f,String(form.get('date')))})).filter(x=>x.av.available===false);if(conflicts.length){const msg=conflicts.map(x=>`- ${x.a.name}: ${availabilityDetail(x.av)}`).join('\n');if(!confirm(`AFC availability warning for ${form.get('date')}:\n\n${msg}\n\nSave this assignment anyway?`))return;}}
+      if(currentUser?.role==='admin'){
+        const checks=assignments.map(a=>({a,f:facultyDirectory.find(x=>String(x.__id)===String(a.ucid||''))})).filter(x=>x.f).map(x=>({...x,av:facultyAssignmentAvailability(x.f,String(form.get('date')),start,end,existing?.id||'')})).filter(x=>x.av.available!==true);
+        if(checks.length){const msg=checks.map(x=>`- ${x.a.name}: ${assignmentAvailabilityDetail(x.av,String(form.get('date')),start,end)}`).join('\n');if(!confirm(`Faculty availability warning for ${form.get('date')} ${start}-${end}:\n\n${msg}\n\nThis checks both AFC and overlapping live timetable courses. Save this assignment anyway?`))return;}
+      }
       const next = {
         id: existing?.id || `S${Date.now()}`,
         date: form.get('date'), week:pos.week, semester:pos.semester, year:Number(form.get('year')),
@@ -1590,9 +1653,9 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
       <form id="auth-setup-form"><div class="modal-body">
         <div class="login-cheatsheet">
           <strong>Firebase test project:</strong> Tester Teaching (<code>tester-teaching</code>)<br><br>
-          <strong>V9.3 authorization + synchronized admin SWAP + AFC availability:</strong><br>
+          <strong>V9.4 authorization + synchronized admin SWAP + AFC + timetable availability:</strong><br>
           1. User signs in with Email/Password or Phone.<br>
-          2. V9.3 reads <code>users/{Firebase UID}</code> from Firestore; admin users also load the faculty directory, Away from Campus records, SWAP tools and instructor selection.<br>
+          2. V9.4 reads <code>users/{Firebase UID}</code> from Firestore; admin users also load the faculty directory, Away from Campus records, live timetable conflicts, SWAP tools and instructor selection.<br>
           3. <code>active: true</code> is required.<br>
           4. <code>role: "viewer"</code> = view only; <code>role: "editor"</code> = view + add/edit/delete.<br><br>
           The page does not yet write timetable sessions to Firestore; only the user role document is read. Source schedule data is loaded from scheduleData.js.
@@ -1661,7 +1724,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
   function openUserManager() {
     if (currentUser?.role !== 'admin') return;
     showModal(`
-      <div class="modal-header"><div class="modal-title">Role Management</div><div class="modal-subtitle">V9.3 keeps user-role management unchanged. Open a timetable block to access SWAP Faculty; admin instructor selection now shows AFC availability for the session date.</div></div>
+      <div class="modal-header"><div class="modal-title">Role Management</div><div class="modal-subtitle">V9.4 keeps user-role management unchanged. Open a timetable block to access SWAP Faculty; admin instructor selection checks both AFC and overlapping courses in the live timetable.</div></div>
       <div class="modal-body">
         <div class="login-cheatsheet">Manage roles in <strong>Firebase Console &gt; Firestore &gt; users</strong>.<br><br>Each document ID is the Firebase Authentication UID. Use <code>active: true</code> and role <code>viewer</code>, <code>editor</code>, or <code>admin</code>.</div>
       </div><div class="modal-footer"><span></span><button class="btn btn-secondary" id="users-close">Close</button></div>`);
