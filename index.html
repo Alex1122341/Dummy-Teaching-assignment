@@ -254,6 +254,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
             <div class="export-btn-row">
               <button class="export-btn" id="export-csv">CSV</button>
               <button class="export-btn" id="reset-test-data">Reload Source Data</button>
+              <button class="export-btn hidden" id="publish-firestore-schedule">Initialize Live Schedule</button>
             </div>
             <div class="test-note">Exports contain the Year 1-3 schedule plus detailed Spy Hill lab sessions loaded for this test site.</div>
           </div>
@@ -347,6 +348,8 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
 
   const STORAGE_KEY = 'ucvm_source_sessions_20260826_v1';
   const UPDATES_KEY = 'ucvm_source_updates_20260826_v1';
+  const SESSION_COLLECTION = 'sessions';
+  const SESSION_LOG_COLLECTION = 'session_change_log';
   const FALL_BASE_MONDAY = new Date(2026, 7, 24);
   const WINTER_BASE_MONDAY = new Date(2027, 0, 4);
   const WEEK_COUNT = 17;
@@ -677,6 +680,8 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
 
   let sessions = loadSessions();
   let updates = loadUpdates();
+  let sessionUnsubscribe = null;
+  let scheduleSource = 'bundled';
   let currentUser = null;
   let selectedWeek = 1;
   let selectedYear = 'all';
@@ -756,6 +761,86 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
   function persist() {
     storageSet(STORAGE_KEY, JSON.stringify(sessions));
     storageSet(UPDATES_KEY, JSON.stringify(updates));
+  }
+
+  function firestoreSafeSession(s) {
+    const clean = JSON.parse(JSON.stringify(s || {}));
+    delete clean.__id;
+    return clean;
+  }
+
+  function updateScheduleSourceUI() {
+    const live = scheduleSource === 'firestore';
+    const text = $('conn-text');
+    if (text && currentUser) text.textContent = live ? `Authorized: ${currentUser.role} · Live schedule` : `Authorized: ${currentUser.role} · Bundled schedule`;
+    const publish = $('publish-firestore-schedule');
+    if (publish) {
+      publish.classList.toggle('hidden', currentUser?.role !== 'admin');
+      publish.textContent = live ? 'Live Schedule Ready' : 'Initialize Live Schedule';
+      publish.disabled = live;
+    }
+  }
+
+  function subscribeSessions() {
+    if (!db || !currentUser) return;
+    if (sessionUnsubscribe) { try { sessionUnsubscribe(); } catch (_) {} }
+    sessionUnsubscribe = db.collection(SESSION_COLLECTION).onSnapshot(snapshot => {
+      if (snapshot.empty) {
+        sessions = seedSessions();
+        scheduleSource = 'bundled';
+      } else {
+        sessions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        scheduleSource = 'firestore';
+      }
+      updateScheduleSourceUI();
+      render();
+    }, err => {
+      console.error('[sessions subscription]', err);
+      sessions = seedSessions();
+      scheduleSource = 'bundled';
+      updateScheduleSourceUI();
+      toast('Live schedule could not be read. Using the bundled source schedule.', true);
+      render();
+    });
+  }
+
+  async function initializeLiveSchedule() {
+    if (currentUser?.role !== 'admin' || !db) { toast('Admin permission is required.', true); return; }
+    const sourceRows = seedSessions();
+    if (!sourceRows.length) { toast('No bundled schedule data is available.', true); return; }
+    try {
+      const existing = await db.collection(SESSION_COLLECTION).limit(1).get();
+      if (!existing.empty) {
+        toast('The Firestore sessions collection is already initialized.', true);
+        return;
+      }
+      if (!confirm(`Initialize Firestore with ${sourceRows.length} audited 2026-2027 schedule sessions? This is a one-time setup so timetable edits and the DOE dashboard can update in real time.`)) return;
+      const chunks=[]; for(let i=0;i<sourceRows.length;i+=350) chunks.push(sourceRows.slice(i,i+350));
+      let written=0;
+      for (const chunk of chunks) {
+        const batch=db.batch();
+        for (const s of chunk) {
+          const id=String(s.id||'').trim(); if(!id) continue;
+          batch.set(db.collection(SESSION_COLLECTION).doc(id), {
+            ...firestoreSafeSession(s),
+            source: 'Audited Year 1-3 + Spy Hill Lab Schedule 2026-2027',
+            updatedBy: currentUser.uid,
+            updatedByName: currentUser.name,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+          written++;
+        }
+        await batch.commit();
+      }
+      await db.collection(SESSION_LOG_COLLECTION).add({
+        action:'initialize_schedule', recordCount:written, changedBy:currentUser.uid, changedByName:currentUser.name,
+        changedAt:firebase.firestore.FieldValue.serverTimestamp()
+      });
+      toast(`Live schedule initialized with ${written} sessions.`);
+    } catch (err) {
+      console.error('[initialize live schedule]', err);
+      toast(`Could not initialize live schedule: ${err.message||err}`, true);
+    }
   }
 
   function init() {
@@ -847,6 +932,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
     $('course-list-btn').addEventListener('click', openCourseList);
     $('export-csv').addEventListener('click', exportCsv);
     $('reset-test-data').addEventListener('click', resetTestData);
+    $('publish-firestore-schedule').addEventListener('click', initializeLiveSchedule);
   }
 
   function resetFilters() {
@@ -1000,7 +1086,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
           ${detailField('Time', `${s.start} - ${s.end}`)}${detailField('Room', s.room)}${detailField('Instructor', s.instructor)}${detailField('Year', `Year ${s.year}`)}
         </div>
         ${labDetails}
-        <div class="login-cheatsheet"><strong>Source data:</strong> Year 1-3 class schedule/calendar views plus Spy Hill Lab Schedule Final 08.26.26. Local edits on this test site affect only this browser.</div>
+        <div class="login-cheatsheet"><strong>Schedule source:</strong> ${scheduleSource === 'firestore' ? 'Live Firestore sessions — edits update the Faculty DOE dashboard in real time.' : 'Bundled audited Year 1-3 + Spy Hill Lab source schedule (read-only until initialized in Firestore).'}</div>
       </div>
       <div class="modal-footer"><button class="btn btn-secondary" id="detail-close">Close</button>${edit}</div>`);
     $('detail-close').onclick = closeModal;
@@ -1013,12 +1099,13 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
 
   function openSessionForm(existing = null) {
     if (!canEdit()) { toast('Editor permission is required to change sessions.', true); return; }
+    if (scheduleSource !== 'firestore') { toast('Initialize the Live Schedule first. Until then the bundled schedule is read-only.', true); return; }
     const s = existing || {
       id: '', date: ymd(weekStart(selectedWeek, selectedSemester)), week: selectedWeek, semester:selectedSemester, year:1,
-      course:'200', type:'LEC', topic:'New Local Session', instructor:'', room:'', start:'09:00', end:'10:00'
+      course:'200', type:'LEC', topic:'New Session', instructor:'', room:'', start:'09:00', end:'10:00'
     };
     showModal(`
-      <div class="modal-header"><div class="modal-title">${existing ? 'Edit' : 'Add'} Local Session</div><div class="modal-subtitle">This test-stage form saves only in this browser; source workbook data is not changed.</div></div>
+      <div class="modal-header"><div class="modal-title">${existing ? 'Edit' : 'Add'} Live Session</div><div class="modal-subtitle">Changes are written to Firestore and will update the timetable and Faculty DOE dashboard in real time.</div></div>
       <form id="session-form">
       <div class="modal-body"><div class="form-grid">
         ${input('date','Date','date',s.date)}
@@ -1031,24 +1118,32 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
         ${input('instructor','Instructor','text',s.instructor)}
         ${input('room','Room','text',s.room)}
       </div></div>
-      <div class="modal-footer"><div>${existing ? '<button type="button" class="btn-danger-text" id="delete-session">Delete Session</button>' : ''}</div><div><button type="button" class="btn btn-secondary" id="cancel-session">Cancel</button> <button class="btn btn-primary" type="submit">Save Local Session</button></div></div>
+      <div class="modal-footer"><div>${existing ? '<button type="button" class="btn-danger-text" id="delete-session">Delete Session</button>' : ''}</div><div><button type="button" class="btn btn-secondary" id="cancel-session">Cancel</button> <button class="btn btn-primary" type="submit">Save Live Session</button></div></div>
       </form>`);
     $('cancel-session').onclick = closeModal;
     if ($('delete-session')) $('delete-session').onclick = () => deleteSession(existing.id);
-    $('session-form').onsubmit = e => {
+    $('session-form').onsubmit = async e => {
       e.preventDefault();
       const form = new FormData(e.target); const date = parseYmd(form.get('date'));
       const pos = academicPositionForDate(date);
-      const week = pos.week;
       const next = {
         id: existing?.id || `S${Date.now()}`,
-        date: form.get('date'), week, semester:pos.semester, year:Number(form.get('year')),
+        date: form.get('date'), week:pos.week, semester:pos.semester, year:Number(form.get('year')),
         course:form.get('course'), type:form.get('type'), topic:form.get('topic'), instructor:form.get('instructor'), room:form.get('room'),
-        start:form.get('start'), end:form.get('end'), updatedAt:new Date().toLocaleString('en-CA')
+        start:form.get('start'), end:form.get('end')
       };
-      if (existing) sessions = sessions.map(x => x.id === existing.id ? next : x); else sessions.push(next);
-      updates.unshift({ when:'Just now', who:currentUser.name, text:`${next.course} - ${next.topic} ${existing ? 'updated' : 'added'}` });
-      persist(); renderUpdates(); closeModal(); render(); toast('Session saved locally in this browser.');
+      try {
+        const ref=db.collection(SESSION_COLLECTION).doc(next.id);
+        const batch=db.batch();
+        batch.set(ref,{...firestoreSafeSession(next),updatedBy:currentUser.uid,updatedByName:currentUser.name,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
+        const logRef=db.collection(SESSION_LOG_COLLECTION).doc();
+        batch.set(logRef,{action:existing?'update':'create',sessionId:next.id,course:next.course,date:next.date,topic:next.topic,changedBy:currentUser.uid,changedByName:currentUser.name,changedAt:firebase.firestore.FieldValue.serverTimestamp()});
+        await batch.commit();
+        closeModal();
+        toast(existing?'Live session updated.':'Live session added.');
+      } catch(err) {
+        console.error(err); toast('Session save failed. Check Firestore session write rules.',true);
+      }
     };
   }
 
@@ -1059,12 +1154,17 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
     return `<div class="form-field"><label class="form-label" for="${name}">${label}</label><select class="form-select" id="${name}" name="${name}">${options.map(o => `<option value="${escapeHtml(o)}" ${String(o)===String(value)?'selected':''}>${escapeHtml(o)}</option>`).join('')}</select></div>`;
   }
 
-  function deleteSession(id) {
+  async function deleteSession(id) {
     const s = sessions.find(x => x.id === id); if (!s) return;
-    if (!confirm('Delete this local session?')) return;
-    sessions = sessions.filter(x => x.id !== id);
-    updates.unshift({ when:'Just now', who:currentUser.name, text:`${s.course} - ${s.topic} deleted` });
-    persist(); renderUpdates(); closeModal(); render(); toast('Local session deleted.');
+    if (scheduleSource !== 'firestore') { toast('Live Schedule is not initialized.', true); return; }
+    if (!confirm(`Delete ${s.course} - ${s.topic} from the live schedule?`)) return;
+    try {
+      const batch=db.batch();
+      batch.delete(db.collection(SESSION_COLLECTION).doc(id));
+      const logRef=db.collection(SESSION_LOG_COLLECTION).doc();
+      batch.set(logRef,{action:'delete',sessionId:id,course:s.course,date:s.date,topic:s.topic,changedBy:currentUser.uid,changedByName:currentUser.name,changedAt:firebase.firestore.FieldValue.serverTimestamp()});
+      await batch.commit(); closeModal(); toast('Live session deleted.');
+    } catch(err) { console.error(err); toast('Delete failed. Check Firestore session write rules.', true); }
   }
 
   function initFirebaseAuth() {
@@ -1086,6 +1186,9 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
           text.textContent = 'Firebase Auth + Roles Ready';
           currentUser = null;
           myTimetableOnly = false;
+          if (sessionUnsubscribe) { try { sessionUnsubscribe(); } catch (_) {} sessionUnsubscribe = null; }
+          scheduleSource = 'bundled';
+          sessions = seedSessions();
           updateAuthUI();
           setAppLocked(true, 'Sign in required to view the timetable.');
           return;
@@ -1140,9 +1243,10 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
           closeModal();
           updateAuthUI();
           renderUpdates();
+          subscribeSessions();
           render();
           setAppLocked(false);
-          text.textContent = `Authorized: ${profile.role}`;
+          updateScheduleSourceUI();
           toast(`Signed in as ${name} (${profile.role}).`);
         } catch (err) {
           console.error('[Firestore role lookup]', err);
@@ -1354,7 +1458,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
           <strong>Authentication:</strong> Firebase ${escapeHtml(currentUser.provider)} sign-in.<br>
           <strong>Authorization:</strong> Firestore <code>users/${escapeHtml(currentUser.uid)}</code>.<br>
           <strong>Role:</strong> ${escapeHtml(currentUser.role)} &nbsp; <strong>Active:</strong> ${currentUser.active ? 'true' : 'false'}<br>
-          <strong>Timetable sessions:</strong> source workbook schedule loaded; any edits are local to this browser for now.
+          <strong>Timetable sessions:</strong> ${scheduleSource === 'firestore' ? 'Live Firestore schedule — shared across authorized users.' : 'Bundled audited schedule — initialize Firestore for real-time shared edits.'}
         </div>
         <div class="form-hint">My Timetable mapping: <strong>${escapeHtml(currentUser.instructorName)}</strong>.</div>
       </div>
@@ -1373,6 +1477,8 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
     $('add-session-btn').classList.toggle('hidden', !canEdit());
     $('manage-users-btn').classList.toggle('hidden', currentUser?.role !== 'admin');
     $('faculty-dashboard-btn').classList.toggle('hidden', currentUser?.role !== 'admin');
+    $('publish-firestore-schedule').classList.toggle('hidden', currentUser?.role !== 'admin');
+    updateScheduleSourceUI();
     $('ui-edit-mode-btn').classList.toggle('hidden', currentUser?.role !== 'admin');
     $('my-timetable-btn').classList.toggle('hidden', !currentUser);
     $('my-timetable-btn').classList.toggle('ui-pref-hidden', !uiSettings.showMyTimetable);
@@ -1407,8 +1513,8 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
   }
 
   function resetTestData() {
-    if (!confirm('Discard local schedule edits and reload the workbook-derived source schedule?')) return;
-    sessions = seedSessions(); updates = seedUpdates(); persist(); renderUpdates(); render(); toast('Source schedule reloaded.');
+    if (scheduleSource === 'firestore') { toast('The live schedule is stored in Firestore. This button does not overwrite live data.', true); return; }
+    sessions = seedSessions(); updates = seedUpdates(); persist(); renderUpdates(); render(); toast('Bundled source schedule reloaded.');
   }
 
   function showModal(content) {
