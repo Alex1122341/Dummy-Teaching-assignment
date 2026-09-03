@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>UCVM Timetable - Synced + Admin Availability</title>
+  <title>UCVM Timetable - Firestore Only V9.5</title>
   <style>
 :root {
   --bg:#eef0f4; --surface:#fff; --surface-2:#f6f7f9; --surface-3:#eceef2;
@@ -107,7 +107,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
 @media(max-width:768px){body.ui-banner-hidden .filter-bar-wrap{top:0}}
 
   
-/* V9.4 AFC + timetable conflict availability in admin assignment tools */
+/* V9.5 Firestore-only + AFC + timetable conflict availability in admin assignment tools */
 .availability-pill{display:inline-block;padding:2px 6px;border-radius:999px;font-size:9.5px;font-weight:850;border:1px solid var(--border);white-space:nowrap}.availability-ok{background:#ecfdf3;color:#166534;border-color:#a7d7b5}.availability-no{background:#fff1f2;color:#b91c1c;border-color:#f3b4ba}.availability-none{background:var(--surface-2);color:var(--text-3)}.availability-detail{font-size:9.5px;line-height:1.35;margin-top:3px}.availability-detail.no{color:#b91c1c;font-weight:700}.availability-detail.ok{color:#166534}.swap-unavailable td{background:#fff9f9}.dark .swap-unavailable td{background:#2a1719}.instructor-availability{font-size:9.5px;line-height:1.35;margin-top:3px}.instructor-availability.no{color:#b91c1c;font-weight:750}.instructor-availability.ok{color:#166534}.instructor-select option{font-weight:400}
 </style>
 </head>
@@ -127,7 +127,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
   </div>
 
   <div class="test-banner">
-    <strong id="ui-banner-label">2026-2027 SYNCED SCHEDULE · ADMIN AVAILABILITY V9.4</strong>
+    <strong id="ui-banner-label">2026-2027 SYNCED SCHEDULE · FIRESTORE ONLY V9.5</strong>
     <span id="ui-banner-message">2026-27 timetable is synchronized with the Faculty Dashboard from All Faculty Summaries. Both pages use the same live Firestore sessions.</span>
     <button id="auth-setup-btn" style="padding:3px 10px;border:1px solid #9a6700;border-radius:999px;background:#fff8dc;color:#664d03;font-size:10.5px;font-weight:700">Auth Setup</button>
   </div>
@@ -362,16 +362,11 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-  <script src="scheduleDataBase.js"></script>
-  <script src="scheduleDataY1.js"></script>
-  <script src="scheduleDataY2.js"></script>
-  <script src="scheduleDataY3.js"></script>
   <script>
 (() => {
   'use strict';
 
-  const STORAGE_KEY = 'ucvm_source_sessions_20260826_v1';
-  const UPDATES_KEY = 'ucvm_source_updates_20260826_v1';
+  const UPDATES_KEY = 'ucvm_live_updates_v95';
   const SESSION_COLLECTION = 'sessions';
   const SESSION_LOG_COLLECTION = 'session_change_log';
   const SPRING_BASE_MONDAY = new Date(2026, 3, 27);
@@ -384,7 +379,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
 
   // Firebase Web configuration is public by design. This local harness uses the
   // separate Tester Teaching project for REAL Authentication and REAL role lookup.
-  // Authentication/roles are real. Source schedule data is loaded from scheduleData.js; edits are local-only in this test stage.
+  // Authentication/roles and the timetable are live. All schedule reads/writes use Firestore; no bundled timetable data is shipped with this page.
   const FIREBASE_CONFIG = {
     apiKey: "AIzaSyDS9VE2zTXv0656_Mh0uDXB67-mZ5Y_LkY",
     authDomain: "tester-teaching.firebaseapp.com",
@@ -487,7 +482,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
     academicYear: '2026-2027',
     brand: 'UCVM',
     pageTitle: 'Timetable',
-    bannerLabel: '2026-2027 SYNCED SCHEDULE · ADMIN AVAILABILITY V9.4',
+    bannerLabel: '2026-2027 SYNCED SCHEDULE · FIRESTORE ONLY V9.5',
     bannerMessage: '2026-27 timetable is synchronized with the Faculty Dashboard from All Faculty Summaries. Both pages use the same live Firestore sessions.',
     updatesTitle: 'Latest Updates',
     updatesSubtitle: 'Schedule source / local changes',
@@ -693,7 +688,43 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
     });
   }
 
-  const COURSES = Array.isArray(window.UCVM_COURSES) ? window.UCVM_COURSES : [];
+  // Public course catalog is embedded so the page has no dependency on scheduleDataBase.js.
+  // Live dates, times, instructors, DOE assignments and availability remain Firestore-only.
+  const COURSES = [
+    {code:'200',year:1,name:'Introduction to Veterinary Medicine'},
+    {code:'202',year:1,name:'Professional Identity Formation I'},
+    {code:'204',year:1,name:'Exploring Veterinary Medicine I'},
+    {code:'206',year:1,name:'Healthy Animals I'},
+    {code:'211',year:1,name:'Practical Work Experience I'},
+    {code:'213',year:1,name:'Animals As Populations'},
+    {code:'215',year:1,name:'What Is A Veterinarian'},
+    {code:'217',year:1,name:'Healthy Animals II'},
+    {code:'302',year:2,name:'Professional Identity Formation II'},
+    {code:'304',year:2,name:'Science of What Goes Wrong I'},
+    {code:'306',year:2,name:'Science of What Goes Wrong II'},
+    {code:'308',year:2,name:'Fundamentals of Diagnosis, Management and Treatment'},
+    {code:'311',year:2,name:'Practical Work Experience II'},
+    {code:'313',year:2,name:'Veterinarians in Society'},
+    {code:'315',year:2,name:'Head, Oral, and Gastrointestinal'},
+    {code:'317',year:2,name:'Endocrine, Renal, and Reproduction'},
+    {code:'319',year:2,name:'Neonatal, Special Senses, Alternative Species'},
+    {code:'440',year:3,name:'One Health and Veterinary Practice'},
+    {code:'501',year:3,name:'Clinical Presentations III'},
+    {code:'505',year:3,name:'Clinical Skills III'},
+    {code:'506',year:3,name:'Investigative Veterinary Medicine and Science Communication'},
+    {code:'508',year:3,name:'Professional Skills III'},
+    {code:'521',year:3,name:'Equine Medicine and Surgery'},
+    {code:'522',year:3,name:'Small Animal Medicine and Surgery'},
+    {code:'523',year:3,name:'Anesthesiology and Therapeutics'},
+    {code:'525',year:3,name:'Advanced Health Management'},
+    {code:'530',year:3,name:'Selected Topics in Clinical Medicine'},
+    {code:'531',year:3,name:'Selected Topics in Small Ruminant, South American Camelid and Non-traditional Livestock Production'},
+    {code:'540',year:3,name:'Food Animal Medicine and Surgery'},
+    {code:'541',year:3,name:'Theriogenology'},
+    {code:'542',year:3,name:'Emergency and Critical Care'},
+    {code:'550',year:3,name:'Zoological Medicine'},
+    {code:'551',year:3,name:'Laboratory Animal Medicine'}
+  ];
 
   const accounts = [
     { id: 'admin-001', name: 'Test Administrator', email: 'admin@ucvm.test', role: 'admin' },
@@ -708,7 +739,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
   let sessionUnsubscribe = null;
   let facultyUnsubscribe = null;
   let facultyDirectory = [];
-  let scheduleSource = 'bundled';
+  let scheduleSource = 'firestore-pending';
   let currentUser = null;
   let selectedWeek = 1;
   let selectedYear = 'all';
@@ -766,30 +797,17 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
     return 'tg-type-other';
   }
 
-  function seedSessions() {
-    if (!Array.isArray(window.UCVM_SCHEDULE_DATA)) return [];
-    return window.UCVM_SCHEDULE_DATA.map(row => ({ ...row, labDetails: Array.isArray(row.labDetails) ? row.labDetails.map(x => ({...x})) : undefined }));
-  }
-
   function seedUpdates() {
     return [
-      { when: 'Source load', who: 'Schedule audit', text: 'Loaded Year 1, Year 2, Year 3 calendar schedules and Spy Hill Lab Schedule - Final 08.26.26.' },
-      { when: 'Validation', who: 'Schedule audit', text: 'Master List rows were cross-checked against the Fall/Winter calendar views before publishing this test data.' },
-      { when: 'Lab detail', who: 'Schedule audit', text: 'Detailed lab times, stations and instructors use the Aug 26 Spy Hill lab schedule where available.' }
+      { when: 'Live source', who: 'Synchronized timetable', text: 'The timetable loads only from the Firestore sessions collection after an authorized sign-in.' },
+      { when: 'Synchronization', who: 'Faculty Dashboard', text: 'Main timetable and Faculty Dashboard use the same Firestore sessions for teaching assignments and DOE.' },
+      { when: 'Availability', who: 'Admin assignment tools', text: 'Faculty assignment checks Away from Campus records and overlapping live timetable sessions.' }
     ];
   }
 
-  function loadSessions() {
-    try { return JSON.parse(storageGet(STORAGE_KEY)) || seedSessions(); }
-    catch { return seedSessions(); }
-  }
   function loadUpdates() {
     try { return JSON.parse(storageGet(UPDATES_KEY)) || seedUpdates(); }
     catch { return seedUpdates(); }
-  }
-  function persist() {
-    storageSet(STORAGE_KEY, JSON.stringify(sessions));
-    storageSet(UPDATES_KEY, JSON.stringify(updates));
   }
 
   function firestoreSafeSession(s) {
@@ -801,7 +819,12 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
   function updateScheduleSourceUI() {
     const live = scheduleSource === 'firestore';
     const text = $('conn-text');
-    if (text && currentUser) text.textContent = live ? `Authorized: ${currentUser.role} · Live schedule` : `Authorized: ${currentUser.role} · Bundled schedule`;
+    if (text && currentUser) {
+      if (live) text.textContent = `Authorized: ${currentUser.role} · Live Firestore schedule`;
+      else if (scheduleSource === 'firestore-empty') text.textContent = `Authorized: ${currentUser.role} · No timetable sessions`;
+      else if (scheduleSource === 'firestore-error') text.textContent = `Authorized: ${currentUser.role} · Timetable unavailable`;
+      else text.textContent = `Authorized: ${currentUser.role} · Connecting to live timetable`;
+    }
     const publish = $('publish-firestore-schedule');
     if (publish) {
       publish.classList.toggle('hidden', currentUser?.role !== 'admin');
@@ -1293,7 +1316,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
 
   function openSessionForm(existing = null) {
     if (!canEdit()) { toast('Editor permission is required to change sessions.', true); return; }
-    if (scheduleSource !== 'firestore') { toast('Initialize the Live Schedule first. Until then the bundled schedule is read-only.', true); return; }
+    if (scheduleSource !== 'firestore') { toast('The live Firestore timetable is unavailable. Sync it from Faculty Dashboard first.', true); return; }
     const s = existing || {
       id: '', date: ymd(weekStart(selectedWeek, selectedSemester)), week: selectedWeek, semester:selectedSemester, year:1,
       course:'200', type:'LEC', topic:'New Session', instructor:'', room:'', start:'09:00', end:'10:00', assignments:[]
@@ -1421,8 +1444,8 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
           myTimetableOnly = false;
           if (sessionUnsubscribe) { try { sessionUnsubscribe(); } catch (_) {} sessionUnsubscribe = null; }
           unsubscribeFacultyDirectory();
-          scheduleSource = 'bundled';
-          sessions = seedSessions();
+          scheduleSource = 'signed-out';
+          sessions = [];
           updateAuthUI();
           setAppLocked(true, 'Sign in required to view the timetable.');
           return;
@@ -1653,12 +1676,12 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
       <form id="auth-setup-form"><div class="modal-body">
         <div class="login-cheatsheet">
           <strong>Firebase test project:</strong> Tester Teaching (<code>tester-teaching</code>)<br><br>
-          <strong>V9.4 authorization + synchronized admin SWAP + AFC + timetable availability:</strong><br>
+          <strong>V9.5 Firestore-only authorization + synchronized admin SWAP + AFC + timetable availability:</strong><br>
           1. User signs in with Email/Password or Phone.<br>
-          2. V9.4 reads <code>users/{Firebase UID}</code> from Firestore; admin users also load the faculty directory, Away from Campus records, live timetable conflicts, SWAP tools and instructor selection.<br>
+          2. V9.5 reads <code>users/{Firebase UID}</code> from Firestore; after authorization, the timetable loads exclusively from <code>sessions</code>. Admin users also load the faculty directory, Away from Campus records, live timetable conflicts, SWAP tools and instructor selection.<br>
           3. <code>active: true</code> is required.<br>
           4. <code>role: "viewer"</code> = view only; <code>role: "editor"</code> = view + add/edit/delete.<br><br>
-          The page does not yet write timetable sessions to Firestore; only the user role document is read. Source schedule data is loaded from scheduleData.js.
+          Timetable reads and admin edits are Firestore-only. No Year 1/2/3 bundled schedule files are loaded by this page.
         </div>
         <div class="form-field"><label class="form-label">Allowed email domain</label><input class="form-input" id="auth-domain" value="${escapeHtml(authSettings.allowedDomain)}" placeholder="ucalgary.ca"><div class="form-hint">Optional local pre-check. Firestore users/{uid} is the real authorization list.</div></div>
         <div class="form-field"><label class="form-label">Allowed phone number(s) - optional</label><textarea class="form-input" id="auth-allowed-phones" rows="3" placeholder="+14035551234, +14035555678">${escapeHtml(authSettings.allowedPhones)}</textarea><div class="form-hint">Leave blank to let Firestore users/{uid} decide whether an authenticated phone user is authorized.</div></div>
@@ -1724,7 +1747,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
   function openUserManager() {
     if (currentUser?.role !== 'admin') return;
     showModal(`
-      <div class="modal-header"><div class="modal-title">Role Management</div><div class="modal-subtitle">V9.4 keeps user-role management unchanged. Open a timetable block to access SWAP Faculty; admin instructor selection checks both AFC and overlapping courses in the live timetable.</div></div>
+      <div class="modal-header"><div class="modal-title">Role Management</div><div class="modal-subtitle">V9.5 keeps user-role management unchanged. The timetable is Firestore-only. Open a timetable block to access SWAP Faculty; admin instructor selection checks both AFC and overlapping courses in the live timetable.</div></div>
       <div class="modal-body">
         <div class="login-cheatsheet">Manage roles in <strong>Firebase Console &gt; Firestore &gt; users</strong>.<br><br>Each document ID is the Firebase Authentication UID. Use <code>active: true</code> and role <code>viewer</code>, <code>editor</code>, or <code>admin</code>.</div>
       </div><div class="modal-footer"><span></span><button class="btn btn-secondary" id="users-close">Close</button></div>`);
@@ -1748,7 +1771,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
     toast('Schedule CSV exported.');
   }
 
-  function resetTestData() { toast('Old bundled timetable data is disabled. Use Faculty Dashboard → Teaching Summary → Replace & Sync All Faculty Summaries.', true); }
+  function resetTestData() { toast('There is no bundled timetable in V9.5. Use Faculty Dashboard → Teaching Summary → Replace & Sync All Faculty Summaries.', true); }
 
   function showModal(content) {
     const m = $('modal');
