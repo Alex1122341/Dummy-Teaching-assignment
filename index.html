@@ -1,0 +1,1384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UCVM Timetable - V8 Admin UI Editor</title>
+  <style>
+:root {
+  --bg:#eef0f4; --surface:#fff; --surface-2:#f6f7f9; --surface-3:#eceef2;
+  --border:#dde1e9; --border-2:#c8cdd8; --text:#111827; --text-2:#374151; --text-3:#6b7280;
+  --accent:#1a3a6b; --accent-2:#14305a; --accent-light:#eaf0fb; --accent-mid:#4a6fa5;
+  --danger:#b91c1c; --success:#166534; --warning:#9a6700;
+  --shadow:0 1px 3px rgba(0,0,0,.07),0 2px 8px rgba(0,0,0,.04); --shadow-lg:0 8px 28px rgba(0,0,0,.14);
+  --radius:6px; --radius-lg:10px; --transition:160ms cubic-bezier(.4,0,.2,1);
+}
+html.dark { --bg:#0a1120; --surface:#111e30; --surface-2:#172438; --surface-3:#1e2d44; --border:#253550; --border-2:#2e4268; --text:#e8eff8; --text-2:#96aecb; --text-3:#6f88a8; --accent-light:#162040; }
+*{box-sizing:border-box;margin:0;padding:0} html{font-size:14px} body{font-family:Inter,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.5;padding-bottom:44px} button{cursor:pointer;font-family:inherit;border:none;background:none} select,input,textarea{font-family:inherit;color:inherit}.hidden{display:none!important}
+.test-banner{height:32px;background:#fff4ce;border-bottom:1px solid #e7c76a;color:#664d03;display:flex;align-items:center;justify-content:center;gap:12px;font-size:11.5px;position:sticky;top:0;z-index:70}.test-banner strong{font-size:11px;letter-spacing:.5px}.dark .test-banner{background:#30280c;color:#ffe69c;border-color:#66551b}
+.filter-bar-wrap{background:var(--surface-2);border-bottom:1px solid var(--border);position:sticky;top:32px;z-index:50;box-shadow:var(--shadow)}.filter-bar-inner{display:flex;align-items:flex-start;gap:22px;padding:10px 20px 8px;width:100%}.brand-block{display:flex;flex-direction:column;flex-shrink:0;padding-top:2px;min-width:110px}.brand-line{line-height:1.15;color:var(--accent)}.brand-line-1{font-size:14.5px;font-weight:600;color:var(--text-3)}.brand-line-2{font-size:23px;font-weight:800}.brand-line-3{font-size:16px;font-weight:700;color:var(--text-2)}.course-list-btn{margin-top:8px;padding:6px 10px;font-size:11.5px;font-weight:600;color:var(--accent);background:var(--accent-light);border:1px solid var(--accent);border-radius:var(--radius);transition:all var(--transition)}.course-list-btn:hover{background:var(--accent);color:#fff}
+.filter-stack{display:flex;flex-direction:column;gap:6px;flex:1;min-width:0}.filter-block-row{display:flex;align-items:center;gap:10px}.filter-block-row-top{align-items:flex-start}.filter-block-label{font-size:10.5px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;flex-shrink:0}.btn-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.week-btn-lines{display:flex;flex-direction:column;gap:5px;min-width:0}.pill-btn{padding:5px 12px;font-size:11.5px;font-weight:600;color:var(--text-2);background:var(--surface);border:1px solid var(--border);border-radius:999px;white-space:nowrap;transition:all var(--transition)}.pill-btn:hover{border-color:var(--accent-mid);color:var(--accent)}.pill-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}.filter-row{display:flex;align-items:flex-start;gap:6px;padding:4px 0 2px;flex-wrap:wrap}.fbar-item{display:flex;flex-direction:column;gap:2px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:5px 10px 4px;min-width:100px}.fbar-search{min-width:210px}.fbar-course{min-width:150px}.fbar-label{font-size:9.5px;font-weight:700;color:var(--text-3);letter-spacing:.5px;text-transform:uppercase;line-height:1}.fbar-input,.fbar-select{border:none;background:transparent;outline:none;font-size:12.5px;color:var(--text);width:100%}.fbar-select-wrap{display:flex;align-items:center;gap:3px}.fbar-arrow{font-size:11px;color:var(--text-2)}.fbar-reset{padding:7px 14px;font-size:12px;font-weight:600;color:var(--text-3);border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);transition:all var(--transition);white-space:nowrap;align-self:flex-start}.fbar-reset:hover{color:var(--accent);border-color:var(--accent);background:var(--accent-light)}
+.main-content{padding:12px 20px 20px;width:100%;position:relative}.main-view{display:grid;grid-template-columns:1fr 320px;gap:14px;align-items:start}.main-view.side-collapsed{grid-template-columns:1fr}.main-view.side-collapsed .side-column{display:none}.cal-column{min-width:0}.cal-toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:10px}.cal-nav{display:flex;align-items:center;gap:10px}.btn-cal-nav{width:28px;height:28px;border-radius:var(--radius);background:var(--surface);border:1px solid var(--border);font-size:15px;color:var(--text-2);display:flex;align-items:center;justify-content:center}.btn-cal-nav:hover{background:var(--accent);color:#fff}.cal-label-text{font-size:14.5px;font-weight:700;color:var(--text);white-space:nowrap}.btn-cal-today{padding:5px 12px;font-size:12px;font-weight:600;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);color:var(--text-2)}.cal-toolbar-right{display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap}.cal-view-toggle{display:flex;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--surface)}.cal-view-btn{padding:5px 14px;font-size:12px;font-weight:600;color:var(--text-2)}.cal-view-btn.active{background:var(--accent);color:#fff}.cal-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow)}
+.side-toggle-btn{position:absolute;top:4px;right:4px;z-index:40;width:26px;height:26px;border-radius:50%;background:var(--surface);border:1px solid var(--border);color:var(--text-2);font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow)}.side-column{display:flex;flex-direction:column;gap:10px;height:68vh;min-height:510px}.side-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow);display:flex;flex-direction:column;min-height:0}.updates-panel{flex:2}.export-panel{flex:1}.side-panel-header{padding:10px 14px 8px;border-bottom:1px solid var(--border);background:var(--surface-2)}.side-panel-title{font-size:12.5px;font-weight:700;color:var(--text);display:block;margin-bottom:3px}.side-panel-sub{font-size:10.5px;color:var(--text-3);display:block}.side-panel-body{overflow-y:auto;flex:1;min-height:0}.update-item{padding:9px 12px;border-bottom:1px solid var(--border);font-size:11.5px;cursor:pointer}.update-item:hover{background:var(--accent-light)}.update-line-1{color:var(--text-3);font-size:10px;margin-bottom:3px}.update-line-2{color:var(--text-2);font-weight:600;font-size:11px;margin-bottom:2px}.update-line-3{color:var(--accent);font-weight:600}.export-panel-body{padding:12px 14px;overflow-y:visible}.export-section-label{font-size:10.5px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.4px;margin:0 0 5px}.export-btn-row{display:flex;gap:6px;flex-wrap:wrap}.export-btn{padding:6px 12px;font-size:11.5px;font-weight:600;color:var(--accent);background:var(--accent-light);border:1px solid var(--accent-mid);border-radius:var(--radius)}.export-btn:hover{background:var(--accent);color:#fff}.test-note{margin-top:12px;font-size:10.5px;color:var(--text-3);line-height:1.45}
+.tg-wrap{display:grid;grid-template-columns:60px repeat(5,1fr);width:100%}.tg-corner{border-right:1px solid var(--border);border-bottom:1px solid var(--border);background:var(--surface-2)}.tg-day-head{background:var(--surface-2);border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:7px 6px;text-align:center}.tg-day-head:last-child{border-right:none}.week-dow{font-size:9.5px;font-weight:700;letter-spacing:.5px;color:var(--text-3);text-transform:uppercase}.week-date{font-size:15px;font-weight:700;color:var(--text);line-height:1.15}.tg-body{display:grid;grid-template-columns:60px repeat(5,1fr);position:relative;height:64vh;min-height:430px;padding:16px 0;background:var(--surface)}.tg-time-axis{position:relative;border-right:1px solid var(--border)}.tg-track{position:absolute;top:16px;bottom:16px;left:0;right:0}.tg-hour-label{position:absolute;right:6px;transform:translateY(-50%);font-size:9px;color:var(--text-3);font-weight:600;white-space:nowrap}.tg-day-col{position:relative;border-right:1px solid var(--border);overflow:hidden}.tg-day-col:last-child{border-right:none}.tg-gridline{position:absolute;left:0;right:0;border-top:1px solid var(--border);opacity:.55}.tg-block{position:absolute;left:3%;right:3%;border-radius:4px;border-left:3px solid var(--accent-mid);background:var(--accent-light);padding:3px 5px;overflow:hidden;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,.06)}.tg-block:hover{filter:brightness(.96);z-index:5}.tg-block.colors-off{background:var(--surface-2)!important;border-left-color:var(--border-2)!important}.tg-block-l1{font-size:10.5px;font-weight:700;color:var(--text);line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tg-block-l2{font-size:9.5px;color:var(--text-2);line-height:1.25;margin-top:1px}.tg-block-l3{font-size:9px;color:var(--text-3);font-weight:600;margin-top:1px}.empty-state{padding:60px 20px;text-align:center;color:var(--text-3)}
+.cal-month{width:100%}.cal-dow-header{display:grid;grid-template-columns:repeat(5,1fr);border-bottom:1px solid var(--border);background:var(--surface-2)}.cal-dow{padding:8px;text-align:center;font-size:10.5px;font-weight:700;color:var(--text-3);letter-spacing:.6px;text-transform:uppercase}.cal-grid{display:grid;grid-template-columns:repeat(5,1fr)}.cal-cell{min-height:110px;min-width:0;padding:5px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);background:var(--surface)}.cal-cell:nth-child(5n){border-right:none}.cal-date-num{font-size:12px;font-weight:600;color:var(--text-3);margin-bottom:3px}.cal-events{display:flex;flex-direction:column;gap:2px;min-width:0}.cal-event{display:flex;flex-direction:column;padding:2px 5px;border-radius:3px;min-width:0;cursor:pointer;overflow:hidden;border-left:3px solid var(--accent-mid);background:var(--accent-light)}.cal-event-l1{font-size:10px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cal-event-l2{font-size:9.5px;color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.modal-container{display:none}.modal-container.open{display:block;position:fixed;inset:0;z-index:200}.modal-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(2px)}.modal-box{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);width:min(650px,94vw);max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg)}.modal-strip{height:4px;background:var(--accent);border-radius:var(--radius-lg) var(--radius-lg) 0 0}.modal-close{position:absolute;top:13px;right:13px;width:28px;height:28px;border-radius:50%;background:var(--surface-2);border:1px solid var(--border);font-size:12px;color:var(--text-2);display:flex;align-items:center;justify-content:center}.modal-header{padding:18px 22px 12px}.modal-title{font-size:16px;font-weight:700}.modal-subtitle{font-size:12px;color:var(--text-3);margin-top:4px}.modal-body{padding:4px 22px 12px}.modal-footer{padding:13px 22px;display:flex;gap:8px;justify-content:space-between;border-top:1px solid var(--border);align-items:center}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.form-field{display:flex;flex-direction:column;gap:4px;margin-bottom:12px}.form-field.full{grid-column:1/-1}.form-label{font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.4px}.form-input,.form-select,.form-textarea{padding:8px 10px;font-size:13px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface-2);color:var(--text);width:100%}.form-hint{font-size:10.5px;color:var(--text-3)}.btn{padding:7px 16px;font-size:13px;font-weight:600;border-radius:var(--radius)}.btn-primary{background:var(--accent);color:#fff;border:1px solid var(--accent)}.btn-secondary{background:var(--surface-2);color:var(--text-2);border:1px solid var(--border)}.btn-danger-text{color:var(--danger);font-size:12px;font-weight:600}.login-cheatsheet{background:var(--surface-2);border:1px solid var(--border);padding:10px;border-radius:var(--radius);font-size:11.5px;line-height:1.5;margin-bottom:12px}.user-table{width:100%;border-collapse:collapse;font-size:11.5px}.user-table th,.user-table td{padding:7px 8px;border-bottom:1px solid var(--border);text-align:left}.user-table th{position:sticky;top:0;background:var(--surface-2);font-size:10px;text-transform:uppercase;color:var(--text-3)}.user-table-wrap{max-height:430px;overflow:auto;border:1px solid var(--border);border-radius:var(--radius)}.role-badge{display:inline-block;padding:2px 6px;border-radius:999px;background:var(--accent-light);color:var(--accent);font-size:10px;font-weight:700}
+.toast{position:fixed;bottom:54px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--text);color:#fff;padding:11px 20px;border-radius:var(--radius-lg);font-size:13px;font-weight:500;box-shadow:var(--shadow-lg);z-index:300;opacity:0;transition:all 220ms ease}.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}.toast.error{background:var(--danger)}
+.bottom-bar{position:fixed;bottom:0;left:0;right:0;height:44px;z-index:60;background:var(--surface);border-top:1px solid var(--border);box-shadow:0 -1px 3px rgba(0,0,0,.06);display:flex;align-items:center;justify-content:space-between;padding:0 16px}.bottom-bar-spacer{flex:1}.bottom-bar-center{flex:1;display:flex;align-items:center;justify-content:center;gap:14px}.bottom-bar-right{flex:1;display:flex;justify-content:flex-end}.conn-status{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--text-3);font-weight:500}.conn-dot{width:7px;height:7px;border-radius:50%;background:var(--success)}.admin-login-btn{padding:5px 14px;font-size:12px;font-weight:600;color:var(--accent);background:var(--accent-light);border:1px solid var(--accent-mid);border-radius:var(--radius)}.admin-login-btn.is-admin{background:var(--accent);color:#fff}.btn-icon{min-width:48px;height:28px;padding:0 8px;display:flex;align-items:center;justify-content:center;font-size:11px;background:var(--surface-2);border-radius:var(--radius);border:1px solid var(--border);color:var(--text-2)}
+@media(max-width:1100px){.main-view{grid-template-columns:1fr 280px}.filter-toggle-btn{display:flex;align-items:center;justify-content:space-between;width:100%;padding:9px 14px;font-size:12.5px;font-weight:700;color:var(--text-2);background:var(--surface);border-bottom:1px solid var(--border)}#filter-bar-inner{display:none}.filter-bar-wrap.expanded #filter-bar-inner{display:flex}}@media(min-width:1101px){.filter-toggle-btn{display:none}}@media(max-width:900px){.main-view{grid-template-columns:1fr}.side-column{height:auto;min-height:0}.tg-wrap,.tg-body{grid-template-columns:46px repeat(5,1fr)}}@media(max-width:768px){.test-banner{height:auto;min-height:38px;padding:5px 10px;flex-direction:column;gap:0;text-align:center}.filter-bar-wrap{top:38px}.filter-bar-inner{padding:8px 12px 6px;flex-direction:column;gap:8px}.main-content{padding:10px}.form-grid{grid-template-columns:1fr}.cal-toolbar{flex-wrap:wrap}.tg-body{height:56vh;min-height:360px}.bottom-bar-center{justify-content:flex-start}.bottom-bar-spacer{display:none}.mobile-only{display:flex!important}#week-pill-block{display:none}.side-toggle-btn{display:none}}@media(min-width:769px){.mobile-only{display:none!important}}
+
+
+.auth-gate{position:fixed;inset:0;z-index:150;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px}
+.auth-gate-card{width:min(460px,94vw);background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow-lg);padding:34px 32px;text-align:center}
+.auth-gate-brand{font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:10px}
+.auth-gate-title{font-size:25px;font-weight:800;color:var(--text);margin-bottom:8px}
+.auth-gate-copy{font-size:13px;line-height:1.55;color:var(--text-3);margin:0 auto 22px;max-width:370px}
+.auth-gate-status{display:flex;align-items:center;justify-content:center;gap:7px;min-height:30px;margin:0 0 14px;padding:7px 10px;border-radius:8px;background:var(--surface-2);border:1px solid var(--border);font-size:11.5px;color:var(--text-3)}
+.auth-gate-status .gate-dot{width:7px;height:7px;border-radius:50%;background:var(--success);flex:0 0 auto}
+.auth-gate-actions{display:flex;flex-direction:column;gap:10px}
+.auth-gate-signin{width:100%;padding:11px 16px;font-size:14px;font-weight:700;border-radius:8px;background:var(--accent);color:#fff;border:1px solid var(--accent)}
+.auth-gate-setup{width:100%;padding:9px 16px;font-size:12px;font-weight:600;border-radius:8px;background:var(--surface-2);color:var(--text-2);border:1px solid var(--border)}
+.auth-gate-note{margin-top:16px;font-size:10.5px;color:var(--text-3);line-height:1.45}
+body.auth-locked{overflow:hidden}
+body.auth-locked .test-banner,body.auth-locked .filter-bar-wrap,body.auth-locked .main-content,body.auth-locked .bottom-bar{display:none!important}
+body:not(.auth-locked) .auth-gate{display:none}
+
+/* V8 Admin-only live UI editor (localStorage only) */
+:root{--ui-sidebar-width:320px}
+.main-view{grid-template-columns:1fr var(--ui-sidebar-width)}
+.ui-pref-hidden{display:none!important}
+.main-view.ui-no-sidebar{grid-template-columns:1fr!important}
+body.ui-banner-hidden .test-banner{display:none!important}
+body.ui-banner-hidden .filter-bar-wrap{top:0}
+body.ui-density-compact .filter-bar-inner{padding-top:6px;padding-bottom:5px;gap:14px}
+body.ui-density-compact .main-content{padding-top:8px}
+body.ui-density-compact .side-panel-header{padding:7px 11px 6px}
+body.ui-density-compact .update-item{padding:6px 9px}
+body.ui-density-roomy .filter-bar-inner{padding-top:14px;padding-bottom:12px;gap:28px}
+body.ui-density-roomy .main-content{padding-top:18px}
+body.ui-density-roomy .side-panel-header{padding:14px 16px 12px}
+body.ui-density-roomy .update-item{padding:12px 14px}
+body.ui-editing [data-ui-editable]{outline:2px dashed var(--accent-mid);outline-offset:2px}
+body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offset:3px}
+.ui-editor-panel{position:fixed;right:14px;top:48px;bottom:58px;width:min(380px,calc(100vw - 28px));z-index:140;background:var(--surface);border:1px solid var(--border-2);border-radius:12px;box-shadow:var(--shadow-lg);display:flex;flex-direction:column;overflow:hidden}
+.ui-editor-head{display:flex;justify-content:space-between;gap:16px;padding:16px 16px 13px;border-bottom:1px solid var(--border);background:var(--surface-2)}
+.ui-editor-eyebrow{font-size:9.5px;font-weight:800;letter-spacing:.08em;color:var(--accent);margin-bottom:3px}.ui-editor-title{font-size:18px;font-weight:800}.ui-editor-sub{font-size:10.5px;color:var(--text-3);line-height:1.4;margin-top:3px}
+.ui-editor-x{width:30px;height:30px;flex:0 0 auto;border:1px solid var(--border);border-radius:50%;background:var(--surface);color:var(--text-2);font-weight:700}
+.ui-editor-scroll{padding:0 15px 16px;overflow-y:auto;min-height:0;flex:1}.ui-editor-section{padding:15px 0 4px;border-bottom:1px solid var(--border)}.ui-editor-section-title{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);margin-bottom:10px}
+.ui-control{display:flex;flex-direction:column;gap:5px;margin-bottom:11px;font-size:11px;font-weight:700;color:var(--text-2)}.ui-control input[type="text"],.ui-control textarea,.ui-control select{width:100%;padding:7px 9px;border:1px solid var(--border);border-radius:6px;background:var(--surface-2);color:var(--text);font:inherit;font-weight:500}.ui-control textarea{resize:vertical;min-height:64px}.ui-control input[type="range"]{width:100%}.ui-control-row{flex-direction:row;align-items:center;justify-content:space-between}.ui-control-row input[type="color"]{width:64px;height:32px;padding:2px;border:1px solid var(--border);border-radius:6px;background:var(--surface)}
+.ui-switch-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:7px 0;font-size:11.5px;font-weight:600;color:var(--text-2)}.ui-switch-row input{width:18px;height:18px;accent-color:var(--accent)}
+.ui-editor-note{font-size:10.5px;line-height:1.45;color:var(--text-3);padding:14px 0 2px}.ui-editor-actions{display:flex;justify-content:flex-end;gap:7px;padding:11px 14px;border-top:1px solid var(--border);background:var(--surface-2);flex-wrap:wrap}
+#ui-edit-mode-btn.ui-edit-active{background:var(--accent);color:white;border-color:var(--accent)}
+@media(max-width:1100px){.main-view{grid-template-columns:1fr min(var(--ui-sidebar-width),280px)}}
+@media(max-width:900px){.main-view{grid-template-columns:1fr}.ui-editor-panel{top:46px;right:10px;bottom:54px;width:min(360px,calc(100vw - 20px))}}
+@media(max-width:768px){body.ui-banner-hidden .filter-bar-wrap{top:0}}
+
+  </style>
+</head>
+<body class="auth-locked">
+  <div class="auth-gate" id="auth-gate">
+    <div class="auth-gate-card">
+      <div class="auth-gate-brand">UCVM</div>
+      <div class="auth-gate-title">2026-2027 Timetable</div>
+      <div class="auth-gate-copy">This timetable is restricted. Sign in with an authorized Firebase account to continue.</div>
+      <div class="auth-gate-status"><span class="gate-dot"></span><span id="gate-status">Connecting to Firebase...</span></div>
+      <div class="auth-gate-actions">
+        <button class="auth-gate-signin" id="gate-sign-in">Sign in</button>
+        <button class="auth-gate-setup" id="gate-auth-setup">Local Auth Setup</button>
+      </div>
+      <div class="auth-gate-note">After authentication, access is checked against <code>Firestore &gt; users/{UID}</code>. Only active viewer/editor/admin accounts can open the timetable.</div>
+    </div>
+  </div>
+
+  <div class="test-banner">
+    <strong id="ui-banner-label">V8 LOCAL UI TEST</strong>
+    <span id="ui-banner-message">Authentication and roles remain unchanged; UI settings are edited live and saved only in this browser.</span>
+    <button id="auth-setup-btn" style="padding:3px 10px;border:1px solid #9a6700;border-radius:999px;background:#fff8dc;color:#664d03;font-size:10.5px;font-weight:700">Auth Setup</button>
+  </div>
+
+  <div class="filter-bar-wrap" id="filter-bar-wrap">
+    <button class="filter-toggle-btn" id="filter-toggle-btn">Filters v</button>
+    <div class="filter-bar-inner" id="filter-bar-inner">
+      <div class="brand-block">
+        <span class="brand-line brand-line-1" id="ui-brand-year" data-ui-editable="Academic year">2026-2027</span>
+        <span class="brand-line brand-line-2" id="ui-brand-name" data-ui-editable="Brand">UCVM</span>
+        <span class="brand-line brand-line-3" id="ui-brand-page" data-ui-editable="Page title">Timetable</span>
+        <button class="course-list-btn" id="course-list-btn" data-ui-editable="Course List button">Course List</button>
+      </div>
+
+      <div class="filter-stack">
+        <div class="filter-block-row">
+          <span class="filter-block-label">Year</span>
+          <div class="btn-row btn-row-left" id="year-btn-row">
+            <button class="pill-btn" data-year="1">Year 1</button>
+            <button class="pill-btn" data-year="2">Year 2</button>
+            <button class="pill-btn" data-year="3">Year 3</button>
+            <button class="pill-btn active" data-year="all">All Years</button>
+          </div>
+        </div>
+
+        <div class="filter-block-row">
+          <span class="filter-block-label">Semester</span>
+          <div class="btn-row btn-row-left" id="semester-btn-row">
+            <button class="pill-btn active" data-semester="fall">Fall</button>
+            <button class="pill-btn" data-semester="winter">Winter</button>
+          </div>
+        </div>
+
+        <div class="filter-block-row filter-block-row-top" id="week-pill-block">
+          <span class="filter-block-label">Week</span>
+          <div class="week-btn-lines">
+            <div class="btn-row btn-row-left" id="week-btn-row-1"></div>
+            <div class="btn-row btn-row-left" id="week-btn-row-2"></div>
+          </div>
+        </div>
+
+        <div class="fbar-item mobile-only" id="week-dropdown-item">
+          <span class="fbar-label">Week</span>
+          <div class="fbar-select-wrap">
+            <select class="fbar-select" id="week-mobile-select"></select>
+            <span class="fbar-arrow">v</span>
+          </div>
+        </div>
+
+        <div class="filter-row">
+          <div class="fbar-item fbar-search">
+            <span class="fbar-label">Search</span>
+            <input type="text" class="fbar-input" id="search-input" placeholder="course, topic, instructor" />
+          </div>
+          <div class="fbar-item">
+            <span class="fbar-label">Month</span>
+            <div class="fbar-select-wrap">
+              <select class="fbar-select" id="filter-month">
+                <option value="all">All Months</option>
+                <option value="8">September</option>
+                <option value="9">October</option>
+                <option value="10">November</option>
+                <option value="11">December</option>
+              </select>
+              <span class="fbar-arrow">v</span>
+            </div>
+          </div>
+          <div class="fbar-item fbar-course">
+            <span class="fbar-label">Course</span>
+            <select class="fbar-select" id="filter-course">
+              <option value="all">All Courses</option>
+            </select>
+          </div>
+          <div class="fbar-item">
+            <span class="fbar-label">Type</span>
+            <div class="fbar-select-wrap">
+              <select class="fbar-select" id="filter-type">
+                <option value="all">All Types</option>
+                <option value="LEC">LEC</option>
+                <option value="LAB">LAB</option>
+                <option value="SRL">SRL</option>
+                <option value="Quiz/Midterm">Quiz/Midterm</option>
+                <option value="OSCE">OSCE</option>
+                <option value="Exam">Exam</option>
+              </select>
+              <span class="fbar-arrow">v</span>
+            </div>
+          </div>
+          <button class="fbar-reset" id="reset-filters">Reset</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="main-content">
+    <button class="side-toggle-btn" id="side-toggle-btn" title="Hide Latest Updates / Data Export panel">&gt;</button>
+    <div class="main-view" id="main-view">
+      <div class="cal-column">
+        <div class="cal-toolbar">
+          <button class="btn-cal-today" id="cal-today">Today</button>
+          <div class="cal-nav">
+            <button class="btn-cal-nav" id="cal-prev">&lt;</button>
+            <span class="cal-label-text" id="cal-label"></span>
+            <button class="btn-cal-nav" id="cal-next">&gt;</button>
+          </div>
+          <div class="cal-toolbar-right">
+            <button class="fbar-reset hidden" id="my-timetable-btn">My Timetable</button>
+            <button class="fbar-reset hidden" id="ui-edit-mode-btn">Edit UI</button>
+            <button class="fbar-reset hidden" id="manage-users-btn">Manage Users</button>
+            <button class="fbar-reset hidden" id="add-session-btn">+ Add Session</button>
+            <button class="fbar-reset" id="color-toggle">Colors: On</button>
+            <div class="cal-view-toggle">
+              <button class="cal-view-btn" id="cal-month-btn">Month</button>
+              <button class="cal-view-btn active" id="cal-week-btn">Week</button>
+            </div>
+          </div>
+        </div>
+        <div class="cal-card" id="cal-card">
+          <div id="calendar-body"></div>
+        </div>
+      </div>
+
+      <div class="side-column" id="side-column">
+        <div class="side-panel updates-panel" id="updates-panel" data-ui-editable="Latest Updates panel">
+          <div class="side-panel-header">
+            <span class="side-panel-title" id="ui-updates-title">Latest Updates</span>
+            <span class="side-panel-sub" id="ui-updates-subtitle">Dummy changes from this browser</span>
+          </div>
+          <div class="side-panel-body" id="latest-updates-body"></div>
+        </div>
+        <div class="side-panel export-panel" id="export-panel" data-ui-editable="Data Export panel">
+          <div class="side-panel-header">
+            <span class="side-panel-title" id="ui-export-title">Data Export</span>
+          </div>
+          <div class="side-panel-body export-panel-body">
+            <div class="export-section-label">Export Dummy Data</div>
+            <div class="export-btn-row">
+              <button class="export-btn" id="export-csv">CSV</button>
+              <button class="export-btn" id="reset-test-data">Reset Test Data</button>
+            </div>
+            <div class="test-note">Exports contain only the fake sessions in this test environment.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <aside class="ui-editor-panel hidden" id="ui-editor-panel" aria-label="Admin UI editor">
+    <div class="ui-editor-head">
+      <div>
+        <div class="ui-editor-eyebrow">ADMIN ONLY · LOCAL PREVIEW</div>
+        <div class="ui-editor-title">Edit UI</div>
+        <div class="ui-editor-sub">Changes preview immediately. Nothing here is written to Firestore.</div>
+      </div>
+      <button class="ui-editor-x" id="ui-editor-x" type="button" aria-label="Cancel UI editing">x</button>
+    </div>
+    <div class="ui-editor-scroll">
+      <section class="ui-editor-section">
+        <div class="ui-editor-section-title">Brand & text</div>
+        <label class="ui-control"><span>Academic year</span><input id="ui-set-year" type="text" maxlength="24"></label>
+        <label class="ui-control"><span>Brand</span><input id="ui-set-brand" type="text" maxlength="32"></label>
+        <label class="ui-control"><span>Page title</span><input id="ui-set-page" type="text" maxlength="40"></label>
+        <label class="ui-control"><span>Banner label</span><input id="ui-set-banner-label" type="text" maxlength="40"></label>
+        <label class="ui-control"><span>Banner message</span><textarea id="ui-set-banner-message" rows="3" maxlength="180"></textarea></label>
+        <label class="ui-control"><span>Updates title</span><input id="ui-set-updates-title" type="text" maxlength="60"></label>
+        <label class="ui-control"><span>Updates subtitle</span><input id="ui-set-updates-subtitle" type="text" maxlength="100"></label>
+        <label class="ui-control"><span>Export title</span><input id="ui-set-export-title" type="text" maxlength="60"></label>
+      </section>
+
+      <section class="ui-editor-section">
+        <div class="ui-editor-section-title">Appearance</div>
+        <label class="ui-control ui-control-row"><span>Accent color</span><input id="ui-set-accent" type="color"></label>
+        <label class="ui-control"><span>Sidebar width <strong id="ui-sidebar-value"></strong></span><input id="ui-set-sidebar" type="range" min="240" max="440" step="10"></label>
+        <label class="ui-control"><span>Corner radius <strong id="ui-radius-value"></strong></span><input id="ui-set-radius" type="range" min="2" max="18" step="1"></label>
+        <label class="ui-control"><span>Text scale <strong id="ui-font-value"></strong></span><input id="ui-set-font" type="range" min="12" max="17" step="0.5"></label>
+        <label class="ui-control"><span>Density</span><select id="ui-set-density"><option value="compact">Compact</option><option value="normal">Normal</option><option value="roomy">Roomy</option></select></label>
+      </section>
+
+      <section class="ui-editor-section">
+        <div class="ui-editor-section-title">Show / hide</div>
+        <label class="ui-switch-row"><span>Top test banner</span><input id="ui-show-banner" type="checkbox"></label>
+        <label class="ui-switch-row"><span>Course List button</span><input id="ui-show-course-list" type="checkbox"></label>
+        <label class="ui-switch-row"><span>Latest Updates</span><input id="ui-show-updates" type="checkbox"></label>
+        <label class="ui-switch-row"><span>Data Export</span><input id="ui-show-export" type="checkbox"></label>
+        <label class="ui-switch-row"><span>Colors toggle</span><input id="ui-show-color-toggle" type="checkbox"></label>
+        <label class="ui-switch-row"><span>My Timetable button</span><input id="ui-show-my-timetable" type="checkbox"></label>
+      </section>
+
+      <div class="ui-editor-note">V8 stores UI settings in <code>localStorage</code> on this browser only. Another computer/browser will keep the default UI.</div>
+    </div>
+    <div class="ui-editor-actions">
+      <button class="btn btn-secondary" id="ui-editor-reset" type="button">Reset preview</button>
+      <button class="btn btn-secondary" id="ui-editor-cancel" type="button">Cancel</button>
+      <button class="btn btn-primary" id="ui-editor-save" type="button">Save locally</button>
+    </div>
+  </aside>
+
+  <div class="bottom-bar">
+    <div class="bottom-bar-spacer"></div>
+    <div class="bottom-bar-center">
+      <span class="conn-status"><span class="conn-dot" id="conn-dot"></span><span id="conn-text">Initializing Firebase Auth + Roles...</span></span>
+      <button class="admin-login-btn" id="account-toggle">Sign in</button>
+    </div>
+    <div class="bottom-bar-right">
+      <button class="btn-icon" id="dark-toggle" title="Toggle dark mode">Moon</button>
+    </div>
+  </div>
+
+  <div class="modal-container" id="modal"></div>
+  <div class="toast" id="toast"></div>
+  <div id="runtime-error" style="display:none;position:fixed;left:12px;right:12px;bottom:56px;z-index:99999;background:#8b0000;color:white;padding:12px 16px;border-radius:8px;font:14px/1.4 Arial,sans-serif;box-shadow:0 4px 18px rgba(0,0,0,.28)"></div>
+  <script>
+    window.addEventListener('error', function (event) {
+      var box = document.getElementById('runtime-error');
+      if (!box) return;
+      box.style.display = 'block';
+      box.textContent = 'JavaScript error: ' + (event.message || 'Unknown error') + (event.lineno ? ' (line ' + event.lineno + ')' : '');
+    });
+  </script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script>
+(() => {
+  'use strict';
+
+  const STORAGE_KEY = 'ucvm_dummy_sessions_v1';
+  const UPDATES_KEY = 'ucvm_dummy_updates_v1';
+  const BASE_MONDAY = new Date(2026, 7, 31); // Aug 31, 2026
+  const WEEK_COUNT = 16;
+  const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+  const DAY_FULL = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+
+
+  // Firebase Web configuration is public by design. This local harness uses the
+  // separate Tester Teaching project for REAL Authentication and REAL role lookup.
+  // Timetable sessions themselves remain local dummy data in this browser.
+  const FIREBASE_CONFIG = {
+    apiKey: "AIzaSyDS9VE2zTXv0656_Mh0uDXB67-mZ5Y_LkY",
+    authDomain: "tester-teaching.firebaseapp.com",
+    projectId: "tester-teaching",
+    storageBucket: "tester-teaching.firebasestorage.app",
+    messagingSenderId: "566638053186",
+    appId: "1:566638053186:web:90e04b52251c4b859baadb",
+    measurementId: "G-F7HW5XX4JE"
+  };
+  const AUTH_SETTINGS_KEY = 'ucvm_email_phone_role_settings_v6';
+  const DEFAULT_AUTH_SETTINGS = {
+    allowedDomain: 'ucalgary.ca',
+    allowedPhones: '',
+    instructorAlias: 'Faculty 001'
+  };
+  let authSettings = loadAuthSettings();
+  let auth = null;
+  let db = null;
+  let authInitialized = false;
+  let recaptchaVerifier = null;
+  let phoneConfirmation = null;
+
+  function loadAuthSettings() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(AUTH_SETTINGS_KEY) || '{}');
+      return { ...DEFAULT_AUTH_SETTINGS, ...saved };
+    } catch (_) {
+      return { ...DEFAULT_AUTH_SETTINGS };
+    }
+  }
+  function saveAuthSettings(next) {
+    authSettings = { ...DEFAULT_AUTH_SETTINGS, ...next };
+    try { localStorage.setItem(AUTH_SETTINGS_KEY, JSON.stringify(authSettings)); } catch (_) {}
+  }
+  function parsePhoneList(value) {
+    return String(value || '')
+      .split(/[;,\n]+/)
+      .map(x => x.replace(/\D/g, ''))
+      .filter(Boolean);
+  }
+  function parseAllowedPhones() { return parsePhoneList(authSettings.allowedPhones); }
+  function isAllowedEmail(email) {
+    const domain = String(authSettings.allowedDomain || '').trim().toLowerCase().replace(/^@/, '');
+    if (!domain) return true;
+    return String(email || '').toLowerCase().endsWith('@' + domain);
+  }
+  function isAllowedPhone(phone) {
+    const normalized = String(phone || '').replace(/\D/g, '');
+    const allowed = parseAllowedPhones();
+    if (!allowed.length) return true;
+    return allowed.includes(normalized);
+  }
+  function normalizePhoneForFirebase(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    const digits = raw.replace(/\D/g, '');
+    if (raw.startsWith('+')) return '+' + digits;
+    if (digits.length === 10) return '+1' + digits;
+    if (digits.length === 11 && digits.startsWith('1')) return '+' + digits;
+    return '+' + digits;
+  }
+
+  function setAppLocked(locked, status) {
+    document.body.classList.toggle('auth-locked', !!locked);
+    const gateStatus = $('gate-status');
+    if (gateStatus && status) gateStatus.textContent = status;
+  }
+
+  function canEdit() {
+    return !!currentUser && (currentUser.role === 'editor' || currentUser.role === 'admin');
+  }
+
+  async function getRoleProfile(firebaseUser) {
+    if (!db) throw new Error('Firestore is not initialized.');
+    const snap = await db.collection('users').doc(firebaseUser.uid).get();
+    if (!snap.exists) {
+      const err = new Error(`No Firestore user profile exists for UID ${firebaseUser.uid}.`);
+      err.code = 'ucvm/profile-not-found';
+      throw err;
+    }
+    const data = snap.data() || {};
+    if (data.active !== true) {
+      const err = new Error('This timetable account is not active.');
+      err.code = 'ucvm/profile-inactive';
+      throw err;
+    }
+    const role = String(data.role || '').trim().toLowerCase();
+    if (!['viewer', 'editor', 'admin'].includes(role)) {
+      const err = new Error(`Invalid Firestore role: ${role || '(blank)'}. Use viewer, editor, or admin.`);
+      err.code = 'ucvm/invalid-role';
+      throw err;
+    }
+    return { ...data, role };
+  }
+
+
+  // V8 UI settings are intentionally local only. Firestore is NOT used to store UI preferences.
+  const UI_SETTINGS_KEY = 'ucvm_ui_settings_v8';
+  const DEFAULT_UI_SETTINGS = Object.freeze({
+    academicYear: '2026-2027',
+    brand: 'UCVM',
+    pageTitle: 'Timetable',
+    bannerLabel: 'V8 LOCAL UI TEST',
+    bannerMessage: 'Authentication and roles remain unchanged; UI settings are edited live and saved only in this browser.',
+    updatesTitle: 'Latest Updates',
+    updatesSubtitle: 'Dummy changes from this browser',
+    exportTitle: 'Data Export',
+    accent: '#1a3a6b',
+    sidebarWidth: 320,
+    radius: 6,
+    fontSize: 14,
+    density: 'normal',
+    showBanner: true,
+    showCourseList: true,
+    showUpdates: true,
+    showExport: true,
+    showColorToggle: true,
+    showMyTimetable: true
+  });
+  let uiSettings = loadUISettings();
+  let uiEditOriginal = null;
+  let uiEditDraft = null;
+
+  function normalizeUISettings(raw) {
+    const x = { ...DEFAULT_UI_SETTINGS, ...(raw || {}) };
+    const text = (value, fallback, max) => {
+      const v = String(value ?? '').trim();
+      return (v || fallback).slice(0, max);
+    };
+    x.academicYear = text(x.academicYear, DEFAULT_UI_SETTINGS.academicYear, 24);
+    x.brand = text(x.brand, DEFAULT_UI_SETTINGS.brand, 32);
+    x.pageTitle = text(x.pageTitle, DEFAULT_UI_SETTINGS.pageTitle, 40);
+    x.bannerLabel = text(x.bannerLabel, DEFAULT_UI_SETTINGS.bannerLabel, 40);
+    x.bannerMessage = text(x.bannerMessage, DEFAULT_UI_SETTINGS.bannerMessage, 180);
+    x.updatesTitle = text(x.updatesTitle, DEFAULT_UI_SETTINGS.updatesTitle, 60);
+    x.updatesSubtitle = text(x.updatesSubtitle, DEFAULT_UI_SETTINGS.updatesSubtitle, 100);
+    x.exportTitle = text(x.exportTitle, DEFAULT_UI_SETTINGS.exportTitle, 60);
+    x.accent = /^#[0-9a-f]{6}$/i.test(String(x.accent)) ? String(x.accent) : DEFAULT_UI_SETTINGS.accent;
+    x.sidebarWidth = Math.max(240, Math.min(440, Number(x.sidebarWidth) || DEFAULT_UI_SETTINGS.sidebarWidth));
+    x.radius = Math.max(2, Math.min(18, Number(x.radius) || DEFAULT_UI_SETTINGS.radius));
+    x.fontSize = Math.max(12, Math.min(17, Number(x.fontSize) || DEFAULT_UI_SETTINGS.fontSize));
+    x.density = ['compact','normal','roomy'].includes(x.density) ? x.density : 'normal';
+    ['showBanner','showCourseList','showUpdates','showExport','showColorToggle','showMyTimetable'].forEach(k => x[k] = x[k] !== false);
+    return x;
+  }
+
+  function loadUISettings() {
+    try { return normalizeUISettings(JSON.parse(storageGet(UI_SETTINGS_KEY) || '{}')); }
+    catch (_) { return normalizeUISettings(DEFAULT_UI_SETTINGS); }
+  }
+
+  function saveUISettings(settings) {
+    uiSettings = normalizeUISettings(settings);
+    storageSet(UI_SETTINGS_KEY, JSON.stringify(uiSettings));
+  }
+
+  function hexToRgb(hex) {
+    const m = /^#([0-9a-f]{6})$/i.exec(hex || '');
+    if (!m) return [26,58,107];
+    const n = parseInt(m[1],16);
+    return [(n>>16)&255,(n>>8)&255,n&255];
+  }
+
+  function applyUISettings(settings) {
+    const x = normalizeUISettings(settings);
+    const root = document.documentElement;
+    const [r,g,b] = hexToRgb(x.accent);
+    root.style.setProperty('--accent', x.accent);
+    root.style.setProperty('--accent-2', x.accent);
+    root.style.setProperty('--accent-mid', `rgba(${r},${g},${b},.68)`);
+    root.style.setProperty('--accent-light', `rgba(${r},${g},${b},.11)`);
+    root.style.setProperty('--ui-sidebar-width', `${x.sidebarWidth}px`);
+    root.style.setProperty('--radius', `${x.radius}px`);
+    root.style.setProperty('--radius-lg', `${Math.min(24, x.radius + 4)}px`);
+    root.style.fontSize = `${x.fontSize}px`;
+
+    const setText = (id, value) => { const el=$(id); if (el) el.textContent=value; };
+    setText('ui-brand-year', x.academicYear);
+    setText('ui-brand-name', x.brand);
+    setText('ui-brand-page', x.pageTitle);
+    setText('ui-banner-label', x.bannerLabel);
+    setText('ui-banner-message', x.bannerMessage);
+    setText('ui-updates-title', x.updatesTitle);
+    setText('ui-updates-subtitle', x.updatesSubtitle);
+    setText('ui-export-title', x.exportTitle);
+    setText('gate-status', $('gate-status')?.textContent || 'Sign in required.');
+    const gateTitle=$('.auth-gate-title'); if (gateTitle) gateTitle.textContent=`${x.academicYear} ${x.pageTitle}`;
+
+    document.body.classList.toggle('ui-banner-hidden', !x.showBanner);
+    document.body.classList.toggle('ui-density-compact', x.density === 'compact');
+    document.body.classList.toggle('ui-density-roomy', x.density === 'roomy');
+    $('course-list-btn')?.classList.toggle('ui-pref-hidden', !x.showCourseList);
+    $('updates-panel')?.classList.toggle('ui-pref-hidden', !x.showUpdates);
+    $('export-panel')?.classList.toggle('ui-pref-hidden', !x.showExport);
+    $('color-toggle')?.classList.toggle('ui-pref-hidden', !x.showColorToggle);
+    const myBtn=$('my-timetable-btn'); if (myBtn) myBtn.classList.toggle('ui-pref-hidden', !x.showMyTimetable);
+    $('main-view')?.classList.toggle('ui-no-sidebar', !x.showUpdates && !x.showExport);
+    $('side-toggle-btn')?.classList.toggle('ui-pref-hidden', !x.showUpdates && !x.showExport);
+  }
+
+  function isAdmin() { return currentUser?.role === 'admin'; }
+
+  function fillUIEditor(settings) {
+    const x = normalizeUISettings(settings);
+    $('ui-set-year').value=x.academicYear;
+    $('ui-set-brand').value=x.brand;
+    $('ui-set-page').value=x.pageTitle;
+    $('ui-set-banner-label').value=x.bannerLabel;
+    $('ui-set-banner-message').value=x.bannerMessage;
+    $('ui-set-updates-title').value=x.updatesTitle;
+    $('ui-set-updates-subtitle').value=x.updatesSubtitle;
+    $('ui-set-export-title').value=x.exportTitle;
+    $('ui-set-accent').value=x.accent;
+    $('ui-set-sidebar').value=String(x.sidebarWidth);
+    $('ui-set-radius').value=String(x.radius);
+    $('ui-set-font').value=String(x.fontSize);
+    $('ui-set-density').value=x.density;
+    $('ui-show-banner').checked=x.showBanner;
+    $('ui-show-course-list').checked=x.showCourseList;
+    $('ui-show-updates').checked=x.showUpdates;
+    $('ui-show-export').checked=x.showExport;
+    $('ui-show-color-toggle').checked=x.showColorToggle;
+    $('ui-show-my-timetable').checked=x.showMyTimetable;
+    $('ui-sidebar-value').textContent=`${x.sidebarWidth}px`;
+    $('ui-radius-value').textContent=`${x.radius}px`;
+    $('ui-font-value').textContent=`${x.fontSize}px`;
+  }
+
+  function readUIEditor() {
+    return normalizeUISettings({
+      academicYear:$('ui-set-year').value,
+      brand:$('ui-set-brand').value,
+      pageTitle:$('ui-set-page').value,
+      bannerLabel:$('ui-set-banner-label').value,
+      bannerMessage:$('ui-set-banner-message').value,
+      updatesTitle:$('ui-set-updates-title').value,
+      updatesSubtitle:$('ui-set-updates-subtitle').value,
+      exportTitle:$('ui-set-export-title').value,
+      accent:$('ui-set-accent').value,
+      sidebarWidth:Number($('ui-set-sidebar').value),
+      radius:Number($('ui-set-radius').value),
+      fontSize:Number($('ui-set-font').value),
+      density:$('ui-set-density').value,
+      showBanner:$('ui-show-banner').checked,
+      showCourseList:$('ui-show-course-list').checked,
+      showUpdates:$('ui-show-updates').checked,
+      showExport:$('ui-show-export').checked,
+      showColorToggle:$('ui-show-color-toggle').checked,
+      showMyTimetable:$('ui-show-my-timetable').checked
+    });
+  }
+
+  function previewUIEditor() {
+    uiEditDraft=readUIEditor();
+    fillUIEditor(uiEditDraft);
+    applyUISettings(uiEditDraft);
+  }
+
+  function openUIEditor() {
+    if (!isAdmin()) { toast('Admin permission is required to edit the UI.', true); return; }
+    uiEditOriginal={...uiSettings};
+    uiEditDraft={...uiSettings};
+    fillUIEditor(uiEditDraft);
+    $('ui-editor-panel').classList.remove('hidden');
+    $('ui-edit-mode-btn').classList.add('ui-edit-active');
+    $('ui-edit-mode-btn').textContent='Editing UI';
+    document.body.classList.add('ui-editing');
+  }
+
+  function closeUIEditor(revert=true) {
+    if (revert && uiEditOriginal) applyUISettings(uiEditOriginal);
+    $('ui-editor-panel')?.classList.add('hidden');
+    $('ui-edit-mode-btn')?.classList.remove('ui-edit-active');
+    if ($('ui-edit-mode-btn')) $('ui-edit-mode-btn').textContent='Edit UI';
+    document.body.classList.remove('ui-editing');
+    uiEditOriginal=null;
+    uiEditDraft=null;
+  }
+
+  function saveUIEditor() {
+    if (!isAdmin()) { closeUIEditor(true); return; }
+    const next=readUIEditor();
+    saveUISettings(next);
+    applyUISettings(uiSettings);
+    closeUIEditor(false);
+    updateAuthUI();
+    toast('UI settings saved locally on this browser.');
+  }
+
+  function bindUIEditorControls() {
+    $('ui-edit-mode-btn').addEventListener('click', openUIEditor);
+    $('ui-editor-x').addEventListener('click', () => closeUIEditor(true));
+    $('ui-editor-cancel').addEventListener('click', () => closeUIEditor(true));
+    $('ui-editor-save').addEventListener('click', saveUIEditor);
+    $('ui-editor-reset').addEventListener('click', () => {
+      uiEditDraft={...DEFAULT_UI_SETTINGS};
+      fillUIEditor(uiEditDraft);
+      applyUISettings(uiEditDraft);
+      toast('Default UI preview loaded. Save locally to keep it.');
+    });
+    const ids=['ui-set-year','ui-set-brand','ui-set-page','ui-set-banner-label','ui-set-banner-message','ui-set-updates-title','ui-set-updates-subtitle','ui-set-export-title','ui-set-accent','ui-set-sidebar','ui-set-radius','ui-set-font','ui-set-density','ui-show-banner','ui-show-course-list','ui-show-updates','ui-show-export','ui-show-color-toggle','ui-show-my-timetable'];
+    ids.forEach(id => {
+      const el=$(id);
+      const event=(el.type==='checkbox'||el.tagName==='SELECT')?'change':'input';
+      el.addEventListener(event, previewUIEditor);
+    });
+  }
+
+  const COURSES = [
+    { code: 'VETM 301', year: 1, name: 'Foundations of Veterinary Medicine' },
+    { code: 'VETM 305', year: 1, name: 'Veterinary Anatomy I' },
+    { code: 'VETM 307', year: 1, name: 'Physiology I' },
+    { code: 'VETM 401', year: 2, name: 'Systems Pathology' },
+    { code: 'VETM 405', year: 2, name: 'Clinical Skills II' },
+    { code: 'VETM 409', year: 2, name: 'Pharmacology' },
+    { code: 'VETM 501', year: 3, name: 'Medicine & Surgery' },
+    { code: 'VETM 505', year: 3, name: 'Diagnostic Imaging' },
+    { code: 'VETM 509', year: 3, name: 'Population Health' }
+  ];
+
+  const accounts = [
+    { id: 'admin-001', name: 'Test Administrator', email: 'admin@ucvm.test', role: 'admin' },
+    ...Array.from({ length: 120 }, (_, i) => {
+      const n = String(i + 1).padStart(3, '0');
+      return { id: `faculty-${n}`, name: `Faculty ${n}`, email: `faculty${n}@ucvm.test`, role: 'faculty' };
+    })
+  ];
+
+  let sessions = loadSessions();
+  let updates = loadUpdates();
+  let currentUser = null;
+  let selectedWeek = 3;
+  let selectedYear = 'all';
+  let selectedSemester = 'fall';
+  let viewMode = 'week';
+  let colorsOn = true;
+  let myTimetableOnly = false;
+
+  const $ = (id) => document.getElementById(id);
+  const memoryStore = {};
+  function storageGet(key) {
+    try { return window.localStorage ? window.localStorage.getItem(key) : (memoryStore[key] ?? null); }
+    catch { return memoryStore[key] ?? null; }
+  }
+  function storageSet(key, value) {
+    try { if (window.localStorage) window.localStorage.setItem(key, value); else memoryStore[key] = value; }
+    catch { memoryStore[key] = value; }
+  }
+
+  function pad(n) { return String(n).padStart(2, '0'); }
+  function ymd(d) { return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
+  function addDays(date, days) { const d = new Date(date); d.setDate(d.getDate() + days); return d; }
+  function weekStart(week) { return addDays(BASE_MONDAY, (week - 1) * 7); }
+  function parseYmd(s) { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); }
+  function formatDate(d) { return d.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' }); }
+  function formatLongDate(d) { return d.toLocaleDateString('en-CA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }); }
+  function timeToMinutes(t) { const [h, m] = t.split(':').map(Number); return h * 60 + m; }
+  function escapeHtml(s) { return String(s ?? '').replace(/[&<>'"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#039;', '"':'&quot;' }[c])); }
+
+  function seedSessions() {
+    const rows = [];
+    let id = 1;
+    const topics = ['Orientation & Foundations','Thorax Anatomy','Cardiovascular Physiology','Inflammation','Clinical Examination','Antimicrobials','Small Animal Medicine','Radiology Cases','Epidemiology'];
+    for (let week = 1; week <= WEEK_COUNT; week++) {
+      const start = weekStart(week);
+      COURSES.forEach((course, idx) => {
+        if ((week + idx) % 3 === 0) return;
+        const dayOffset = (idx + week) % 5;
+        const startHour = 9 + ((idx + week) % 6);
+        const startMin = idx % 2 ? '30' : '00';
+        const duration = idx % 3 === 0 ? 120 : 60;
+        const sh = `${pad(startHour)}:${startMin}`;
+        const endMinutes = timeToMinutes(sh) + duration;
+        const eh = `${pad(Math.floor(endMinutes / 60))}:${pad(endMinutes % 60)}`;
+        const facultyNum = ((idx * 13 + week * 3) % 120) + 1;
+        const f = String(facultyNum).padStart(3, '0');
+        rows.push({
+          id: `S${String(id++).padStart(4, '0')}`,
+          date: ymd(addDays(start, dayOffset)),
+          week,
+          semester: 'fall',
+          year: course.year,
+          course: course.code,
+          type: idx % 4 === 1 ? 'LAB' : idx % 5 === 0 ? 'SRL' : 'LEC',
+          topic: topics[idx],
+          instructor: `Faculty ${f}`,
+          room: idx % 3 === 0 ? 'HSC 1405' : idx % 3 === 1 ? 'VLC 101' : 'Spy Hill Lab',
+          start: sh,
+          end: eh,
+          updatedAt: `2026-08-${pad(10 + ((week + idx) % 14))} 10:${pad((idx * 7) % 60)}`
+        });
+      });
+    }
+    return rows;
+  }
+
+  function seedUpdates() {
+    return [
+      { when: 'Today', who: 'Test Administrator', text: 'Dummy environment initialized' },
+      { when: 'Yesterday', who: 'Faculty 024', text: 'VETM 405 - Clinical Examination moved to VLC 101' },
+      { when: '2 days ago', who: 'Test Administrator', text: 'VETM 305 - Thorax Anatomy time updated' },
+      { when: '3 days ago', who: 'Faculty 001', text: 'Sample timetable record reviewed' }
+    ];
+  }
+
+  function loadSessions() {
+    try { return JSON.parse(storageGet(STORAGE_KEY)) || seedSessions(); }
+    catch { return seedSessions(); }
+  }
+  function loadUpdates() {
+    try { return JSON.parse(storageGet(UPDATES_KEY)) || seedUpdates(); }
+    catch { return seedUpdates(); }
+  }
+  function persist() {
+    storageSet(STORAGE_KEY, JSON.stringify(sessions));
+    storageSet(UPDATES_KEY, JSON.stringify(updates));
+  }
+
+  function init() {
+    applyUISettings(uiSettings);
+    populateCourseFilter();
+    renderWeekControls();
+    bindControls();
+    bindUIEditorControls();
+    updateAuthUI();
+    setAppLocked(true, 'Checking login status...');
+    initFirebaseAuth();
+  }
+
+  function populateCourseFilter() {
+    const select = $('filter-course');
+    COURSES.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.code; opt.textContent = c.code;
+      select.appendChild(opt);
+    });
+  }
+
+  function renderWeekControls() {
+    const r1 = $('week-btn-row-1');
+    const r2 = $('week-btn-row-2');
+    const mobile = $('week-mobile-select');
+    r1.innerHTML = ''; r2.innerHTML = ''; mobile.innerHTML = '';
+    for (let w = 1; w <= WEEK_COUNT; w++) {
+      const b = document.createElement('button');
+      b.className = 'pill-btn' + (w === selectedWeek ? ' active' : '');
+      b.textContent = `W${w}`; b.dataset.week = w;
+      b.addEventListener('click', () => { selectedWeek = w; syncWeekUI(); render(); });
+      (w <= 8 ? r1 : r2).appendChild(b);
+      const opt = document.createElement('option'); opt.value = w; opt.textContent = `Week ${w} - ${formatDate(weekStart(w))}`;
+      if (w === selectedWeek) opt.selected = true;
+      mobile.appendChild(opt);
+    }
+  }
+
+  function syncWeekUI() {
+    document.querySelectorAll('[data-week]').forEach(b => b.classList.toggle('active', Number(b.dataset.week) === selectedWeek));
+    $('week-mobile-select').value = String(selectedWeek);
+  }
+
+  function bindControls() {
+    $('year-btn-row').addEventListener('click', e => {
+      const b = e.target.closest('[data-year]'); if (!b) return;
+      selectedYear = b.dataset.year;
+      document.querySelectorAll('[data-year]').forEach(x => x.classList.toggle('active', x === b));
+      render();
+    });
+    $('semester-btn-row').addEventListener('click', e => {
+      const b = e.target.closest('[data-semester]'); if (!b) return;
+      selectedSemester = b.dataset.semester;
+      document.querySelectorAll('[data-semester]').forEach(x => x.classList.toggle('active', x === b));
+      render();
+    });
+    $('week-mobile-select').addEventListener('change', e => { selectedWeek = Number(e.target.value); syncWeekUI(); render(); });
+    ['search-input','filter-month','filter-course','filter-type'].forEach(id => $(id).addEventListener(id === 'search-input' ? 'input' : 'change', render));
+    $('reset-filters').addEventListener('click', resetFilters);
+    $('cal-prev').addEventListener('click', () => { selectedWeek = Math.max(1, selectedWeek - 1); syncWeekUI(); render(); });
+    $('cal-next').addEventListener('click', () => { selectedWeek = Math.min(WEEK_COUNT, selectedWeek + 1); syncWeekUI(); render(); });
+    $('cal-today').addEventListener('click', () => { selectedWeek = 1; syncWeekUI(); render(); toast('Moved to the first test week (Aug 31, 2026).'); });
+    $('cal-week-btn').addEventListener('click', () => { viewMode = 'week'; setViewButtons(); render(); });
+    $('cal-month-btn').addEventListener('click', () => { viewMode = 'month'; setViewButtons(); render(); });
+    $('color-toggle').addEventListener('click', () => { colorsOn = !colorsOn; $('color-toggle').textContent = `Colors: ${colorsOn ? 'On' : 'Off'}`; render(); });
+    $('side-toggle-btn').addEventListener('click', () => { $('main-view').classList.toggle('side-collapsed'); $('side-toggle-btn').textContent = $('main-view').classList.contains('side-collapsed') ? '<' : '>'; });
+    $('dark-toggle').addEventListener('click', () => { document.documentElement.classList.toggle('dark'); $('dark-toggle').textContent = document.documentElement.classList.contains('dark') ? 'Light' : 'Moon'; applyUISettings(uiEditDraft || uiSettings); });
+    $('filter-toggle-btn').addEventListener('click', () => $('filter-bar-wrap').classList.toggle('expanded'));
+    $('account-toggle').addEventListener('click', () => currentUser ? openAccountModal() : openLoginModal());
+    $('auth-setup-btn').addEventListener('click', openAuthSetupModal);
+    $('gate-sign-in').addEventListener('click', openLoginModal);
+    $('gate-auth-setup').addEventListener('click', openAuthSetupModal);
+    $('add-session-btn').addEventListener('click', () => openSessionForm());
+    $('manage-users-btn').addEventListener('click', openUserManager);
+    $('my-timetable-btn').addEventListener('click', () => { myTimetableOnly = !myTimetableOnly; $('my-timetable-btn').textContent = myTimetableOnly ? 'Show All Timetable' : 'My Timetable'; render(); });
+    $('course-list-btn').addEventListener('click', openCourseList);
+    $('export-csv').addEventListener('click', exportCsv);
+    $('reset-test-data').addEventListener('click', resetTestData);
+  }
+
+  function resetFilters() {
+    selectedYear = 'all'; selectedSemester = 'fall';
+    document.querySelectorAll('[data-year]').forEach(x => x.classList.toggle('active', x.dataset.year === 'all'));
+    document.querySelectorAll('[data-semester]').forEach(x => x.classList.toggle('active', x.dataset.semester === 'fall'));
+    $('search-input').value = ''; $('filter-month').value = 'all'; $('filter-course').value = 'all'; $('filter-type').value = 'all';
+    myTimetableOnly = false; if (currentUser) $('my-timetable-btn').textContent = 'My Timetable';
+    render();
+  }
+
+  function setViewButtons() {
+    $('cal-week-btn').classList.toggle('active', viewMode === 'week');
+    $('cal-month-btn').classList.toggle('active', viewMode === 'month');
+  }
+
+  function filteredSessions() {
+    const q = $('search-input').value.trim().toLowerCase();
+    const month = $('filter-month').value;
+    const course = $('filter-course').value;
+    const type = $('filter-type').value;
+    return sessions.filter(s => {
+      if (selectedYear !== 'all' && String(s.year) !== selectedYear) return false;
+      if (s.semester !== selectedSemester) return false;
+      if (month !== 'all' && String(parseYmd(s.date).getMonth()) !== month) return false;
+      if (course !== 'all' && s.course !== course) return false;
+      if (type !== 'all' && s.type !== type) return false;
+      if (myTimetableOnly && currentUser && s.instructor !== (currentUser.instructorName || currentUser.name)) return false;
+      if (q && !`${s.course} ${s.topic} ${s.instructor} ${s.room} ${s.type}`.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }
+
+  function render() {
+    if (selectedSemester === 'winter') {
+      $('cal-label').textContent = 'Winter 2027 - Dummy placeholder';
+      $('calendar-body').innerHTML = '<div class="empty-state"><strong>Winter test data has not been seeded.</strong><br>Switch back to Fall or add your own dummy sessions as Admin.</div>';
+      return;
+    }
+    viewMode === 'week' ? renderWeek() : renderMonth();
+  }
+
+  function renderWeek() {
+    const start = weekStart(selectedWeek); const end = addDays(start, 4);
+    $('cal-label').textContent = `Week ${selectedWeek} - ${formatDate(start)} to ${formatDate(end)}, ${end.getFullYear()}`;
+    const data = filteredSessions().filter(s => s.week === selectedWeek);
+    let html = '<div class="tg-wrap"><div class="tg-corner"></div>';
+    for (let i = 0; i < 5; i++) {
+      const d = addDays(start, i);
+      html += `<div class="tg-day-head"><div class="week-dow">${DAYS[i]}</div><div class="week-date">${d.getDate()}</div></div>`;
+    }
+    html += '</div><div class="tg-body"><div class="tg-time-axis"><div class="tg-track">';
+    for (let h = 9; h <= 16; h++) {
+      const top = ((h * 60 - 510) / 480) * 100;
+      html += `<span class="tg-hour-label" style="top:${top}%">${h > 12 ? h - 12 : h}:00</span>`;
+    }
+    html += '</div></div>';
+    for (let day = 0; day < 5; day++) {
+      const date = ymd(addDays(start, day));
+      html += '<div class="tg-day-col">';
+      for (let h = 9; h <= 16; h++) {
+        const top = ((h * 60 - 510) / 480) * 100;
+        html += `<div class="tg-gridline" style="top:${top}%"></div>`;
+      }
+      data.filter(s => s.date === date).sort((a,b) => a.start.localeCompare(b.start)).forEach(s => {
+        const startM = Math.max(510, timeToMinutes(s.start));
+        const endM = Math.min(990, timeToMinutes(s.end));
+        const top = ((startM - 510) / 480) * 100;
+        const height = Math.max(5, ((endM - startM) / 480) * 100);
+        html += `<div class="tg-block ${colorsOn ? '' : 'colors-off'}" data-session-id="${s.id}" style="top:${top}%;height:${height}%">
+          <div class="tg-block-l1">${escapeHtml(s.course)} - ${escapeHtml(s.type)}</div>
+          <div class="tg-block-l2">${escapeHtml(s.topic)}</div>
+          <div class="tg-block-l3">${escapeHtml(s.start)}-${escapeHtml(s.end)} | ${escapeHtml(s.room)}<br>${escapeHtml(s.instructor)}</div>
+        </div>`;
+      });
+      html += '</div>';
+    }
+    html += '</div>';
+    $('calendar-body').innerHTML = html;
+    bindSessionBlocks();
+  }
+
+  function renderMonth() {
+    const wstart = weekStart(selectedWeek);
+    const monthChoice = $('filter-month').value;
+    const month = monthChoice === 'all' ? wstart.getMonth() : Number(monthChoice);
+    const year = 2026;
+    const first = new Date(year, month, 1); const last = new Date(year, month + 1, 0);
+    $('cal-label').textContent = first.toLocaleDateString('en-CA', { month: 'long', year: 'numeric' });
+    let monday = new Date(first);
+    const jsDay = monday.getDay();
+    const delta = jsDay === 0 ? -6 : 1 - jsDay;
+    monday.setDate(monday.getDate() + delta);
+    const data = filteredSessions();
+    let html = '<div class="cal-month"><div class="cal-dow-header">' + DAYS.map(d => `<div class="cal-dow">${d}</div>`).join('') + '</div><div class="cal-grid">';
+    let cursor = new Date(monday);
+    while (cursor <= last || cursor.getDay() !== 1) {
+      for (let i = 0; i < 5; i++) {
+        const cell = addDays(cursor, i); const dateStr = ymd(cell);
+        const events = data.filter(s => s.date === dateStr).slice(0, 4);
+        html += `<div class="cal-cell"><div class="cal-date-num">${cell.getDate()}</div><div class="cal-events">`;
+        events.forEach(s => html += `<div class="cal-event" data-session-id="${s.id}"><div class="cal-event-l1">${escapeHtml(s.course)} ${escapeHtml(s.type)}</div><div class="cal-event-l2">${escapeHtml(s.start)} ${escapeHtml(s.topic)}</div></div>`);
+        html += '</div></div>';
+      }
+      cursor = addDays(cursor, 7);
+      if (cursor.getMonth() > month && cursor > last && cursor.getDate() > 7) break;
+    }
+    html += '</div></div>';
+    $('calendar-body').innerHTML = html;
+    bindSessionBlocks();
+  }
+
+  function bindSessionBlocks() {
+    document.querySelectorAll('[data-session-id]').forEach(el => el.addEventListener('click', () => openSessionDetail(el.dataset.sessionId)));
+  }
+
+  function renderUpdates() {
+    $('latest-updates-body').innerHTML = updates.slice(0, 20).map(u => `<div class="update-item"><div class="update-line-1">${escapeHtml(u.when)} - ${escapeHtml(u.who)}</div><div class="update-line-2">Test environment change</div><div class="update-line-3">${escapeHtml(u.text)}</div></div>`).join('');
+  }
+
+  function openSessionDetail(id) {
+    const s = sessions.find(x => x.id === id); if (!s) return;
+    const edit = canEdit() ? `<button class="btn btn-primary" id="detail-edit">Edit Session</button>` : '';
+    showModal(`
+      <div class="modal-header"><div class="modal-title">${escapeHtml(s.course)} - ${escapeHtml(s.topic)}</div><div class="modal-subtitle">${escapeHtml(s.type)} | ${formatLongDate(parseYmd(s.date))}</div></div>
+      <div class="modal-body">
+        <div class="form-grid">
+          ${detailField('Time', `${s.start} - ${s.end}`)}${detailField('Room', s.room)}${detailField('Instructor', s.instructor)}${detailField('Year', `Year ${s.year}`)}
+        </div>
+        <div class="login-cheatsheet"><strong>Dummy record:</strong> edits here affect only localStorage in this browser.</div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-secondary" id="detail-close">Close</button>${edit}</div>`);
+    $('detail-close').onclick = closeModal;
+    if ($('detail-edit')) $('detail-edit').onclick = () => openSessionForm(s);
+  }
+
+  function detailField(label, value) {
+    return `<div class="form-field"><span class="form-label">${escapeHtml(label)}</span><div>${escapeHtml(value)}</div></div>`;
+  }
+
+  function openSessionForm(existing = null) {
+    if (!canEdit()) { toast('Editor permission is required to change sessions.', true); return; }
+    const s = existing || {
+      id: '', date: ymd(weekStart(selectedWeek)), week: selectedWeek, semester:'fall', year:1,
+      course:'VETM 301', type:'LEC', topic:'New Dummy Session', instructor:'Faculty 001', room:'HSC 1405', start:'09:00', end:'10:00'
+    };
+    showModal(`
+      <div class="modal-header"><div class="modal-title">${existing ? 'Edit' : 'Add'} Dummy Session</div><div class="modal-subtitle">This form never writes to the live timetable.</div></div>
+      <form id="session-form">
+      <div class="modal-body"><div class="form-grid">
+        ${input('date','Date','date',s.date)}
+        ${select('year','Year',[1,2,3],s.year)}
+        ${select('course','Course',COURSES.map(c=>c.code),s.course)}
+        ${select('type','Type',['LEC','LAB','SRL','Quiz/Midterm','OSCE','Exam'],s.type)}
+        ${input('start','Start','time',s.start)}
+        ${input('end','End','time',s.end)}
+        ${input('topic','Topic','text',s.topic,'full')}
+        ${input('instructor','Instructor','text',s.instructor)}
+        ${input('room','Room','text',s.room)}
+      </div></div>
+      <div class="modal-footer"><div>${existing ? '<button type="button" class="btn-danger-text" id="delete-session">Delete Session</button>' : ''}</div><div><button type="button" class="btn btn-secondary" id="cancel-session">Cancel</button> <button class="btn btn-primary" type="submit">Save Dummy Session</button></div></div>
+      </form>`);
+    $('cancel-session').onclick = closeModal;
+    if ($('delete-session')) $('delete-session').onclick = () => deleteSession(existing.id);
+    $('session-form').onsubmit = e => {
+      e.preventDefault();
+      const form = new FormData(e.target); const date = parseYmd(form.get('date'));
+      const diffDays = Math.round((date - BASE_MONDAY) / 86400000);
+      const week = Math.floor(diffDays / 7) + 1;
+      const next = {
+        id: existing?.id || `S${Date.now()}`,
+        date: form.get('date'), week, semester:'fall', year:Number(form.get('year')),
+        course:form.get('course'), type:form.get('type'), topic:form.get('topic'), instructor:form.get('instructor'), room:form.get('room'),
+        start:form.get('start'), end:form.get('end'), updatedAt:new Date().toLocaleString('en-CA')
+      };
+      if (existing) sessions = sessions.map(x => x.id === existing.id ? next : x); else sessions.push(next);
+      updates.unshift({ when:'Just now', who:currentUser.name, text:`${next.course} - ${next.topic} ${existing ? 'updated' : 'added'}` });
+      persist(); renderUpdates(); closeModal(); render(); toast('Dummy session saved locally.');
+    };
+  }
+
+  function input(name,label,type,value,extra='') {
+    return `<div class="form-field ${extra}"><label class="form-label" for="${name}">${label}</label><input class="form-input" id="${name}" name="${name}" type="${type}" value="${escapeHtml(value)}" required></div>`;
+  }
+  function select(name,label,options,value) {
+    return `<div class="form-field"><label class="form-label" for="${name}">${label}</label><select class="form-select" id="${name}" name="${name}">${options.map(o => `<option value="${escapeHtml(o)}" ${String(o)===String(value)?'selected':''}>${escapeHtml(o)}</option>`).join('')}</select></div>`;
+  }
+
+  function deleteSession(id) {
+    const s = sessions.find(x => x.id === id); if (!s) return;
+    if (!confirm('Delete this dummy session?')) return;
+    sessions = sessions.filter(x => x.id !== id);
+    updates.unshift({ when:'Just now', who:currentUser.name, text:`${s.course} - ${s.topic} deleted` });
+    persist(); renderUpdates(); closeModal(); render(); toast('Dummy session deleted.');
+  }
+
+  function initFirebaseAuth() {
+    const dot = $('conn-dot');
+    const text = $('conn-text');
+    try {
+      if (typeof firebase === 'undefined') throw new Error('Firebase libraries did not load. Check your internet connection.');
+      if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+      auth = firebase.auth();
+      db = firebase.firestore();
+      authInitialized = true;
+      auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(() => {});
+      dot.classList.add('online');
+      text.textContent = 'Firebase Auth + Roles Ready';
+      setAppLocked(true, 'Checking saved login...');
+
+      auth.onAuthStateChanged(async user => {
+        if (!user) {
+          text.textContent = 'Firebase Auth + Roles Ready';
+          currentUser = null;
+          myTimetableOnly = false;
+          updateAuthUI();
+          setAppLocked(true, 'Sign in required to view the timetable.');
+          return;
+        }
+
+        const email = String(user.email || '').trim().toLowerCase();
+        const phone = String(user.phoneNumber || '').trim();
+        let provider = 'firebase';
+        let identity = '';
+
+        if (email) {
+          if (!isAllowedEmail(email)) {
+            await auth.signOut().catch(() => {});
+            toast(`Email ${email} is outside the allowed local domain.`, true);
+            return;
+          }
+          provider = 'email';
+          identity = email;
+        } else if (phone) {
+          if (!isAllowedPhone(phone)) {
+            await auth.signOut().catch(() => {});
+            toast(`Phone ${phone} is not on the optional local phone list.`, true);
+            return;
+          }
+          provider = 'phone';
+          identity = phone;
+        } else {
+          await auth.signOut().catch(() => {});
+          toast('This Firebase account has neither an email nor a phone number.', true);
+          return;
+        }
+
+        try {
+          text.textContent = 'Checking Firestore role...';
+          setAppLocked(true, 'Checking your timetable access...');
+          const profile = await getRoleProfile(user);
+          const name = String(profile.name || user.displayName || (email ? email.split('@')[0] : phone) || 'UCVM User');
+          currentUser = {
+            id: user.uid,
+            uid: user.uid,
+            name,
+            email,
+            phone,
+            identity,
+            role: profile.role,
+            active: profile.active === true,
+            instructorName: String(profile.instructor || authSettings.instructorAlias || 'Faculty 001'),
+            provider,
+            profile
+          };
+          myTimetableOnly = false;
+          closeModal();
+          updateAuthUI();
+          renderUpdates();
+          render();
+          setAppLocked(false);
+          text.textContent = `Authorized: ${profile.role}`;
+          toast(`Signed in as ${name} (${profile.role}).`);
+        } catch (err) {
+          console.error('[Firestore role lookup]', err);
+          let msg = err && err.message ? err.message : 'Could not load this user\'s Firestore role.';
+          const code = err && err.code ? err.code : '';
+          if (code === 'permission-denied') {
+            msg = 'Firestore denied access to users/{uid}. Publish the V7 Firestore Rules from README_FIRST.txt.';
+          } else if (code === 'ucvm/profile-not-found') {
+            msg = 'Authentication succeeded, but this UID has no document under Firestore > users. Add users/{UID} with active=true and role=viewer or editor.';
+          } else if (code === 'ucvm/profile-inactive') {
+            msg = 'This account exists but active is not true in Firestore.';
+          } else if (code === 'ucvm/invalid-role') {
+            msg = 'Firestore role must be exactly viewer, editor, or admin (lowercase recommended).';
+          }
+          setAppLocked(true, 'Access denied. Sign in with an authorized account.');
+          await auth.signOut().catch(() => {});
+          text.textContent = 'Firebase Auth + Roles Ready';
+          toast(msg, true);
+        }
+      });
+    } catch (err) {
+      authInitialized = false;
+      dot.classList.remove('online');
+      dot.style.background = 'var(--danger)';
+      text.textContent = 'Firebase Auth / Firestore unavailable';
+      setAppLocked(true, 'Firebase is unavailable. Check your connection or setup.');
+      console.error('[Firebase init]', err);
+    }
+  }
+
+  function requireLocalhost() {
+    if (location.protocol !== 'file:') return false;
+    showModal(`
+      <div class="modal-header"><div class="modal-title">Use localhost for Firebase Login</div><div class="modal-subtitle">Phone reCAPTCHA and Firebase Auth should be tested through the local server.</div></div>
+      <div class="modal-body">
+        <div class="login-cheatsheet"><strong>Start the page with START_LOCAL.bat</strong>, then open:<br><br><code>http://localhost:8765/</code></div>
+      </div><div class="modal-footer"><span></span><button class="btn btn-secondary" id="local-close">Close</button></div>`);
+    $('local-close').onclick = closeModal;
+    return true;
+  }
+
+  function openLoginModal() {
+    if (requireLocalhost()) return;
+    if (!authInitialized || !auth) { toast('Firebase Authentication is not initialized.', true); return; }
+    showModal(`
+      <div class="modal-header"><div class="modal-title">Sign in to UCVM Timetable Test</div><div class="modal-subtitle">Choose either Email or Phone. Authentication and role authorization are real; timetable session data is fake/local only.</div></div>
+      <div class="modal-body">
+        <div class="login-cheatsheet"><strong>Firebase project:</strong> Tester Teaching (<code>tester-teaching</code>)<br>Enable the matching provider in Firebase Authentication. Your UID must also exist under Firestore <code>users/{uid}</code>.</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px">
+          <button type="button" class="btn btn-primary" id="choose-email" style="padding:16px">Email + Password</button>
+          <button type="button" class="btn btn-primary" id="choose-phone" style="padding:16px">Phone + SMS Code</button>
+        </div>
+      </div>
+      <div class="modal-footer"><span></span><button class="btn btn-secondary" id="login-choice-close">Cancel</button></div>`);
+    $('choose-email').onclick = openEmailLoginModal;
+    $('choose-phone').onclick = openPhoneLoginModal;
+    $('login-choice-close').onclick = closeModal;
+  }
+
+  function openEmailLoginModal() {
+    clearRecaptcha();
+    showModal(`
+      <div class="modal-header"><div class="modal-title">Email Sign In</div><div class="modal-subtitle">Uses Firebase Email/Password authentication.</div></div>
+      <form id="email-login-form"><div class="modal-body">
+        <div class="login-cheatsheet"><strong>Firebase setup:</strong> Authentication > Sign-in method > enable <strong>Email/Password</strong>.<br>For testing, create a user under Authentication > Users > Add user.</div>
+        <div class="form-field"><label class="form-label">Email</label><input class="form-input" id="login-email" name="email" type="email" placeholder="name@ucalgary.ca" autocomplete="username" required></div>
+        <div class="form-field"><label class="form-label">Password</label><input class="form-input" id="login-password" name="password" type="password" autocomplete="current-password" required></div>
+      </div><div class="modal-footer"><button type="button" class="btn btn-secondary" id="email-back">Back</button><button class="btn btn-primary" type="submit">Sign in with Email</button></div></form>`);
+    $('email-back').onclick = openLoginModal;
+    $('email-login-form').onsubmit = async e => {
+      e.preventDefault();
+      const email = $('login-email').value.trim();
+      const password = $('login-password').value;
+      try {
+        await auth.signInWithEmailAndPassword(email, password);
+      } catch (err) {
+        console.error('[Email sign-in]', err);
+        const code = err && err.code ? err.code : '';
+        let msg = err && err.message ? err.message : 'Email sign-in failed.';
+        if (code === 'auth/operation-not-allowed') msg = 'Enable Email/Password in Tester Teaching > Authentication > Sign-in method.';
+        else if (code === 'auth/invalid-email') msg = 'The email address is not valid.';
+        else if (code === 'auth/user-disabled') msg = 'This Firebase user is disabled.';
+        else if (code === 'auth/user-not-found' || code === 'auth/wrong-password' || code === 'auth/invalid-credential') msg = 'Email or password is incorrect, or the Firebase user has not been created yet.';
+        else if (code === 'auth/too-many-requests') msg = 'Too many failed attempts. Try again later.';
+        toast(msg, true);
+      }
+    };
+  }
+
+  function clearRecaptcha() {
+    if (recaptchaVerifier) {
+      try { recaptchaVerifier.clear(); } catch (_) {}
+      recaptchaVerifier = null;
+    }
+  }
+
+  function openPhoneLoginModal() {
+    clearRecaptcha();
+    phoneConfirmation = null;
+    showModal(`
+      <div class="modal-header"><div class="modal-title">Phone Sign In</div><div class="modal-subtitle">Firebase sends an SMS verification code after reCAPTCHA.</div></div>
+      <form id="phone-login-form"><div class="modal-body">
+        <div class="login-cheatsheet"><strong>Firebase setup:</strong> Authentication > Sign-in method > enable <strong>Phone</strong>.<br>Canadian numbers can be entered as <code>4035551234</code> or <code>+14035551234</code>. For repeated testing, Firebase test phone numbers are recommended.</div>
+        <div class="form-field"><label class="form-label">Phone number</label><input class="form-input" id="login-phone" type="tel" placeholder="+14035551234" autocomplete="tel" required></div>
+        <div class="form-field"><label class="form-label">reCAPTCHA</label><div id="recaptcha-container" style="min-height:78px;padding-top:4px"></div></div>
+      </div><div class="modal-footer"><button type="button" class="btn btn-secondary" id="phone-back">Back</button><button class="btn btn-primary" type="submit">Send SMS Code</button></div></form>`);
+    $('phone-back').onclick = openLoginModal;
+    try {
+      recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', { size: 'normal' });
+      recaptchaVerifier.render().catch(err => console.error('[reCAPTCHA render]', err));
+    } catch (err) {
+      console.error('[reCAPTCHA init]', err);
+      toast('Could not initialize reCAPTCHA. Make sure you opened http://localhost:8765/.', true);
+    }
+    $('phone-login-form').onsubmit = async e => {
+      e.preventDefault();
+      const phone = normalizePhoneForFirebase($('login-phone').value);
+      if (!/^\+\d{8,15}$/.test(phone)) { toast('Enter a valid phone number, preferably in +1... format.', true); return; }
+      try {
+        if (!recaptchaVerifier) throw new Error('reCAPTCHA is not initialized.');
+        phoneConfirmation = await auth.signInWithPhoneNumber(phone, recaptchaVerifier);
+        clearRecaptcha();
+        openPhoneCodeModal(phone);
+      } catch (err) {
+        console.error('[Phone sign-in]', err);
+        const code = err && err.code ? err.code : '';
+        let msg = err && err.message ? err.message : 'Could not send SMS code.';
+        if (code === 'auth/operation-not-allowed') msg = 'Enable Phone in Tester Teaching > Authentication > Sign-in method.';
+        else if (code === 'auth/invalid-phone-number') msg = 'The phone number is invalid. Use +1 followed by the Canadian number.';
+        else if (code === 'auth/unauthorized-domain') msg = 'Add localhost in Tester Teaching > Authentication > Settings > Authorized domains.';
+        else if (code === 'auth/quota-exceeded') msg = 'Firebase SMS quota has been exceeded. Use a Firebase test phone number or try later.';
+        else if (code === 'auth/captcha-check-failed') msg = 'reCAPTCHA verification failed. Reload and try again.';
+        else if (code === 'auth/too-many-requests') msg = 'Too many SMS requests. Use a Firebase test phone number or wait before trying again.';
+        toast(msg, true);
+        clearRecaptcha();
+        setTimeout(openPhoneLoginModal, 250);
+      }
+    };
+  }
+
+  function openPhoneCodeModal(phone) {
+    showModal(`
+      <div class="modal-header"><div class="modal-title">Enter SMS Code</div><div class="modal-subtitle">Verification code sent to ${escapeHtml(phone)}.</div></div>
+      <form id="phone-code-form"><div class="modal-body">
+        <div class="form-field"><label class="form-label">6-digit verification code</label><input class="form-input" id="phone-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456" required></div>
+      </div><div class="modal-footer"><button type="button" class="btn btn-secondary" id="code-back">Use another number</button><button class="btn btn-primary" type="submit">Verify & Sign In</button></div></form>`);
+    $('code-back').onclick = openPhoneLoginModal;
+    $('phone-code-form').onsubmit = async e => {
+      e.preventDefault();
+      const code = $('phone-code').value.trim();
+      try {
+        if (!phoneConfirmation) throw new Error('SMS verification session expired.');
+        await phoneConfirmation.confirm(code);
+        phoneConfirmation = null;
+      } catch (err) {
+        console.error('[Phone code confirm]', err);
+        const codeName = err && err.code ? err.code : '';
+        let msg = err && err.message ? err.message : 'Verification failed.';
+        if (codeName === 'auth/invalid-verification-code') msg = 'The SMS code is incorrect.';
+        else if (codeName === 'auth/code-expired') msg = 'The SMS code expired. Request a new one.';
+        toast(msg, true);
+      }
+    };
+  }
+
+  function openAuthSetupModal() {
+    showModal(`
+      <div class="modal-header"><div class="modal-title">Local Auth + Firestore Role Setup</div><div class="modal-subtitle">Login is Firebase Auth. Authorization comes from Firestore users/{uid}.</div></div>
+      <form id="auth-setup-form"><div class="modal-body">
+        <div class="login-cheatsheet">
+          <strong>Firebase test project:</strong> Tester Teaching (<code>tester-teaching</code>)<br><br>
+          <strong>V8 authorization:</strong><br>
+          1. User signs in with Email/Password or Phone.<br>
+          2. V8 reads <code>users/{Firebase UID}</code> from Firestore.<br>
+          3. <code>active: true</code> is required.<br>
+          4. <code>role: "viewer"</code> = view only; <code>role: "editor"</code> = view + add/edit/delete.<br><br>
+          The page never reads/writes timetable sessions from Firestore; only the user role document is read.
+        </div>
+        <div class="form-field"><label class="form-label">Allowed email domain</label><input class="form-input" id="auth-domain" value="${escapeHtml(authSettings.allowedDomain)}" placeholder="ucalgary.ca"><div class="form-hint">Optional local pre-check. Firestore users/{uid} is the real authorization list.</div></div>
+        <div class="form-field"><label class="form-label">Allowed phone number(s) - optional</label><textarea class="form-input" id="auth-allowed-phones" rows="3" placeholder="+14035551234, +14035555678">${escapeHtml(authSettings.allowedPhones)}</textarea><div class="form-hint">Leave blank to let Firestore users/{uid} decide whether an authenticated phone user is authorized.</div></div>
+        <div class="form-field"><label class="form-label">Dummy instructor mapping</label><input class="form-input" id="auth-instructor" value="${escapeHtml(authSettings.instructorAlias)}" placeholder="Faculty 001"><div class="form-hint">Only used for the fake My Timetable filter. You may instead add an optional Firestore field named <code>instructor</code>.</div></div>
+        <div class="login-cheatsheet"><strong>Local test URL:</strong><br><code>http://localhost:8765/</code></div>
+      </div><div class="modal-footer"><button type="button" class="btn btn-secondary" id="auth-setup-cancel">Cancel</button><button class="btn btn-primary" type="submit">Save Local Settings</button></div></form>`);
+    $('auth-setup-cancel').onclick = closeModal;
+    $('auth-setup-form').onsubmit = e => {
+      e.preventDefault();
+      saveAuthSettings({
+        allowedDomain: $('auth-domain').value.trim(),
+        allowedPhones: $('auth-allowed-phones').value.trim(),
+        instructorAlias: $('auth-instructor').value.trim() || 'Faculty 001'
+      });
+      closeModal();
+      if (currentUser) {
+        currentUser.instructorName = String(currentUser.profile?.instructor || authSettings.instructorAlias || 'Faculty 001');
+        updateAuthUI();
+        render();
+      }
+      toast('Local settings saved. User role still comes from Firestore.');
+    };
+  }
+
+  function openAccountModal() {
+    const identity = currentUser.email || currentUser.phone || currentUser.identity || '';
+    const providerLabel = currentUser.provider === 'phone' ? 'Phone verified' : 'Email verified';
+    showModal(`
+      <div class="modal-header"><div class="modal-title">${escapeHtml(currentUser.name)}</div><div class="modal-subtitle">${escapeHtml(identity)} | role: ${escapeHtml(currentUser.role)} | ${providerLabel}</div></div>
+      <div class="modal-body">
+        <div class="login-cheatsheet">
+          <strong>Authentication:</strong> Firebase ${escapeHtml(currentUser.provider)} sign-in.<br>
+          <strong>Authorization:</strong> Firestore <code>users/${escapeHtml(currentUser.uid)}</code>.<br>
+          <strong>Role:</strong> ${escapeHtml(currentUser.role)} &nbsp; <strong>Active:</strong> ${currentUser.active ? 'true' : 'false'}<br>
+          <strong>Timetable sessions:</strong> local dummy data only.
+        </div>
+        <div class="form-hint">Dummy My Timetable mapping: <strong>${escapeHtml(currentUser.instructorName)}</strong>.</div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-secondary" id="account-close">Close</button><button class="btn btn-primary" id="logout-btn">Sign Out</button></div>`);
+    $('account-close').onclick = closeModal;
+    $('logout-btn').onclick = async () => {
+      closeModal();
+      if (auth) await auth.signOut().catch(err => console.error(err));
+    };
+  }
+
+  function updateAuthUI() {
+    const b = $('account-toggle');
+    b.textContent = currentUser ? `${currentUser.name} - ${currentUser.role}` : 'Sign in';
+    b.classList.toggle('is-admin', canEdit());
+    $('add-session-btn').classList.toggle('hidden', !canEdit());
+    $('manage-users-btn').classList.toggle('hidden', currentUser?.role !== 'admin');
+    $('ui-edit-mode-btn').classList.toggle('hidden', currentUser?.role !== 'admin');
+    $('my-timetable-btn').classList.toggle('hidden', !currentUser);
+    $('my-timetable-btn').classList.toggle('ui-pref-hidden', !uiSettings.showMyTimetable);
+    if (currentUser?.role !== 'admin' && !$('ui-editor-panel').classList.contains('hidden')) closeUIEditor(true);
+    if (!currentUser || !myTimetableOnly) $('my-timetable-btn').textContent = 'My Timetable';
+  }
+
+  function openUserManager() {
+    if (currentUser?.role !== 'admin') return;
+    showModal(`
+      <div class="modal-header"><div class="modal-title">Role Management</div><div class="modal-subtitle">V8 keeps user-role management unchanged; UI editing is local-only and admin-only.</div></div>
+      <div class="modal-body">
+        <div class="login-cheatsheet">Manage roles in <strong>Firebase Console &gt; Firestore &gt; users</strong>.<br><br>Each document ID is the Firebase Authentication UID. Use <code>active: true</code> and role <code>viewer</code>, <code>editor</code>, or <code>admin</code>.</div>
+      </div><div class="modal-footer"><span></span><button class="btn btn-secondary" id="users-close">Close</button></div>`);
+    $('users-close').onclick = closeModal;
+  }
+
+  function openCourseList() {
+    showModal(`
+      <div class="modal-header"><div class="modal-title">Dummy Course List</div><div class="modal-subtitle">Sample courses for interface testing</div></div>
+      <div class="modal-body"><div class="user-table-wrap"><table class="user-table"><thead><tr><th>Course</th><th>Year</th><th>Name</th></tr></thead><tbody>${COURSES.map(c => `<tr><td><strong>${c.code}</strong></td><td>Year ${c.year}</td><td>${escapeHtml(c.name)}</td></tr>`).join('')}</tbody></table></div></div>
+      <div class="modal-footer"><span></span><button class="btn btn-secondary" id="course-close">Close</button></div>`);
+    $('course-close').onclick = closeModal;
+  }
+
+  function exportCsv() {
+    const rows = [['ID','Date','Week','Year','Course','Type','Topic','Instructor','Room','Start','End'], ...filteredSessions().map(s => [s.id,s.date,s.week,s.year,s.course,s.type,s.topic,s.instructor,s.room,s.start,s.end])];
+    const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type:'text/csv;charset=utf-8' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'ucvm-dummy-timetable.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(a.href);
+    toast('Dummy CSV exported.');
+  }
+
+  function resetTestData() {
+    if (!confirm('Reset all local dummy timetable changes?')) return;
+    sessions = seedSessions(); updates = seedUpdates(); persist(); renderUpdates(); render(); toast('Test data reset.');
+  }
+
+  function showModal(content) {
+    const m = $('modal');
+    m.innerHTML = `<div class="modal-backdrop"></div><div class="modal-box"><div class="modal-strip"></div><button class="modal-close" id="modal-x">x</button>${content}</div>`;
+    m.classList.add('open');
+    m.querySelector('.modal-backdrop').onclick = closeModal;
+    $('modal-x').onclick = closeModal;
+  }
+  function closeModal() { clearRecaptcha(); $('modal').classList.remove('open'); $('modal').innerHTML = ''; }
+  function toast(message, error=false) {
+    const t = $('toast'); t.textContent = message; t.classList.toggle('error', error); t.classList.add('show');
+    clearTimeout(toast.timer); toast.timer = setTimeout(() => t.classList.remove('show'), error ? 6500 : 2800);
+  }
+
+  init();
+})();
+
+  </script>
+</body>
+</html>
