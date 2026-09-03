@@ -223,6 +223,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
             <button class="fbar-reset hidden" id="my-timetable-btn">My Timetable</button>
             <button class="fbar-reset hidden" id="ui-edit-mode-btn">Edit UI</button>
             <button class="fbar-reset hidden" id="manage-users-btn">Manage Users</button>
+            <button class="fbar-reset hidden" id="faculty-dashboard-btn">Faculty Dashboard</button>
             <button class="fbar-reset hidden" id="add-session-btn">+ Add Session</button>
             <button class="fbar-reset" id="color-toggle">Colors: On</button>
             <div class="cal-view-toggle">
@@ -841,6 +842,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
     $('gate-auth-setup').addEventListener('click', openAuthSetupModal);
     $('add-session-btn').addEventListener('click', () => openSessionForm());
     $('manage-users-btn').addEventListener('click', openUserManager);
+    $('faculty-dashboard-btn').addEventListener('click', () => { window.location.href = 'faculty-admin.html'; });
     $('my-timetable-btn').addEventListener('click', () => { myTimetableOnly = !myTimetableOnly; $('my-timetable-btn').textContent = myTimetableOnly ? 'Show All Timetable' : 'My Timetable'; render(); });
     $('course-list-btn').addEventListener('click', openCourseList);
     $('export-csv').addEventListener('click', exportCsv);
@@ -1370,6 +1372,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
     b.classList.toggle('is-admin', canEdit());
     $('add-session-btn').classList.toggle('hidden', !canEdit());
     $('manage-users-btn').classList.toggle('hidden', currentUser?.role !== 'admin');
+    $('faculty-dashboard-btn').classList.toggle('hidden', currentUser?.role !== 'admin');
     $('ui-edit-mode-btn').classList.toggle('hidden', currentUser?.role !== 'admin');
     $('my-timetable-btn').classList.toggle('hidden', !currentUser);
     $('my-timetable-btn').classList.toggle('ui-pref-hidden', !uiSettings.showMyTimetable);
