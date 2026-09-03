@@ -51,6 +51,10 @@ html.dark .tg-type-other,html.dark .cal-event.tg-type-other{background:#263244;b
 .swap-table-wrap{max-height:430px;overflow:auto;border:1px solid var(--border);border-radius:var(--radius)}.swap-table{width:100%;border-collapse:collapse;font-size:11px;min-width:900px}.swap-table th,.swap-table td{padding:7px 8px;border-bottom:1px solid var(--border);text-align:left;vertical-align:middle}.swap-table th{position:sticky;top:0;background:var(--surface-2);z-index:2;font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-3)}.swap-table tr:hover td{background:var(--accent-light)}.swap-num{font-variant-numeric:tabular-nums;white-space:nowrap}.swap-projected{font-weight:850;color:var(--accent)}.swap-status{display:inline-block;padding:2px 6px;border-radius:999px;font-size:9.5px;font-weight:800;border:1px solid var(--border)}.swap-under{background:#fff8e6;color:#9a6700;border-color:#ebcd83}.swap-within{background:#ecfdf3;color:#166534;border-color:#a7d7b5}.swap-over{background:#fff1f2;color:#b91c1c;border-color:#f3b4ba}.swap-unknown{background:var(--surface-2);color:var(--text-3)}
 @media(max-width:760px){.swap-session-card{grid-template-columns:1fr 1fr}.modal-box.swap-wide{width:98vw}.swap-chip{font-size:7px}.tg-block.admin-swap-enabled,.cal-event.admin-swap-enabled{padding-right:34px}}
 
+/* V9.2 instructor line editor */
+.instructor-editor{grid-column:1/-1}.instructor-lines{display:flex;flex-direction:column;gap:7px;margin-top:2px}.instructor-line{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center}.instructor-line .form-select{width:100%}.instructor-remove{height:36px;padding:0 10px;border:1px solid #efb2b2;border-radius:var(--radius);background:#fff7f7;color:var(--danger);font-size:11px;font-weight:750}.instructor-remove:hover{background:#fee2e2}.instructor-add{margin-top:7px;align-self:flex-start}.instructor-note{font-size:10px;color:var(--text-3);line-height:1.4;margin-top:5px}.instructor-role-note{font-size:9.5px;color:var(--text-3);margin-top:2px}.instructor-empty{padding:9px 10px;border:1px dashed var(--border-2);border-radius:var(--radius);color:var(--text-3);background:var(--surface-2);font-size:11px}.detail-multiline{white-space:pre-line}.dark .instructor-remove{background:#341b20;border-color:#6f2c36;color:#fecdd3}.dark .instructor-remove:hover{background:#482128}
+@media(max-width:560px){.instructor-line{grid-template-columns:1fr}.instructor-remove{justify-self:start}}
+
 .modal-container{display:none}.modal-container.open{display:block;position:fixed;inset:0;z-index:200}.modal-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(2px)}.modal-box{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);width:min(650px,94vw);max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg)}.modal-strip{height:4px;background:var(--accent);border-radius:var(--radius-lg) var(--radius-lg) 0 0}.modal-close{position:absolute;top:13px;right:13px;width:28px;height:28px;border-radius:50%;background:var(--surface-2);border:1px solid var(--border);font-size:12px;color:var(--text-2);display:flex;align-items:center;justify-content:center}.modal-header{padding:18px 22px 12px}.modal-title{font-size:16px;font-weight:700}.modal-subtitle{font-size:12px;color:var(--text-3);margin-top:4px}.modal-body{padding:4px 22px 12px}.modal-footer{padding:13px 22px;display:flex;gap:8px;justify-content:space-between;border-top:1px solid var(--border);align-items:center}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.form-field{display:flex;flex-direction:column;gap:4px;margin-bottom:12px}.form-field.full{grid-column:1/-1}.form-label{font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.4px}.form-input,.form-select,.form-textarea{padding:8px 10px;font-size:13px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface-2);color:var(--text);width:100%}.form-hint{font-size:10.5px;color:var(--text-3)}.btn{padding:7px 16px;font-size:13px;font-weight:600;border-radius:var(--radius)}.btn-primary{background:var(--accent);color:#fff;border:1px solid var(--accent)}.btn-secondary{background:var(--surface-2);color:var(--text-2);border:1px solid var(--border)}.btn-danger-text{color:var(--danger);font-size:12px;font-weight:600}.login-cheatsheet{background:var(--surface-2);border:1px solid var(--border);padding:10px;border-radius:var(--radius);font-size:11.5px;line-height:1.5;margin-bottom:12px}.user-table{width:100%;border-collapse:collapse;font-size:11.5px}.user-table th,.user-table td{padding:7px 8px;border-bottom:1px solid var(--border);text-align:left}.user-table th{position:sticky;top:0;background:var(--surface-2);font-size:10px;text-transform:uppercase;color:var(--text-3)}.user-table-wrap{max-height:430px;overflow:auto;border:1px solid var(--border);border-radius:var(--radius)}.role-badge{display:inline-block;padding:2px 6px;border-radius:999px;background:var(--accent-light);color:var(--accent);font-size:10px;font-weight:700}
 .toast{position:fixed;bottom:54px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--text);color:#fff;padding:11px 20px;border-radius:var(--radius-lg);font-size:13px;font-weight:500;box-shadow:var(--shadow-lg);z-index:300;opacity:0;transition:all 220ms ease}.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}.toast.error{background:var(--danger)}
 .bottom-bar{position:fixed;bottom:0;left:0;right:0;height:44px;z-index:60;background:var(--surface);border-top:1px solid var(--border);box-shadow:0 -1px 3px rgba(0,0,0,.06);display:flex;align-items:center;justify-content:space-between;padding:0 16px}.bottom-bar-spacer{flex:1}.bottom-bar-center{flex:1;display:flex;align-items:center;justify-content:center;gap:14px}.bottom-bar-right{flex:1;display:flex;justify-content:flex-end}.conn-status{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--text-3);font-weight:500}.conn-dot{width:7px;height:7px;border-radius:50%;background:var(--success)}.admin-login-btn{padding:5px 14px;font-size:12px;font-weight:600;color:var(--accent);background:var(--accent-light);border:1px solid var(--accent-mid);border-radius:var(--radius)}.admin-login-btn.is-admin{background:var(--accent);color:#fff}.btn-icon{min-width:48px;height:28px;padding:0 8px;display:flex;align-items:center;justify-content:center;font-size:11px;background:var(--surface-2);border-radius:var(--radius);border:1px solid var(--border);color:var(--text-2)}
@@ -120,7 +124,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
   </div>
 
   <div class="test-banner">
-    <strong id="ui-banner-label">2026-2027 SYNCED SCHEDULE · ADMIN SWAP V9.1</strong>
+    <strong id="ui-banner-label">2026-2027 SYNCED SCHEDULE · ADMIN SWAP V9.2</strong>
     <span id="ui-banner-message">2026-27 timetable is synchronized with the Faculty Dashboard from All Faculty Summaries. Both pages use the same live Firestore sessions.</span>
     <button id="auth-setup-btn" style="padding:3px 10px;border:1px solid #9a6700;border-radius:999px;background:#fff8dc;color:#664d03;font-size:10.5px;font-weight:700">Auth Setup</button>
   </div>
@@ -480,7 +484,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
     academicYear: '2026-2027',
     brand: 'UCVM',
     pageTitle: 'Timetable',
-    bannerLabel: '2026-2027 SYNCED SCHEDULE · ADMIN SWAP V9.1',
+    bannerLabel: '2026-2027 SYNCED SCHEDULE · ADMIN SWAP V9.2',
     bannerMessage: '2026-27 timetable is synchronized with the Faculty Dashboard from All Faculty Summaries. Both pages use the same live Firestore sessions.',
     updatesTitle: 'Latest Updates',
     updatesSubtitle: 'Schedule source / local changes',
@@ -1065,7 +1069,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
       if (month !== 'all' && String(parseYmd(s.date).getMonth()) !== month) return false;
       if (course !== 'all' && s.course !== course) return false;
       if (type !== 'all' && s.type !== type) return false;
-      if (myTimetableOnly && currentUser && s.instructor !== (currentUser.instructorName || currentUser.name)) return false;
+      if (myTimetableOnly && currentUser) { const mine=swapNameKey(currentUser.instructorName||currentUser.name); const assigned=(Array.isArray(s.assignments)?s.assignments.map(a=>a.name):splitInstructorNames(s.instructor)); if(!assigned.some(n=>swapNameKey(n)===mine)) return false; }
       if (q && !`${s.course} ${s.topic} ${s.instructor} ${s.room} ${s.type}`.toLowerCase().includes(q)) return false;
       return true;
     });
@@ -1188,7 +1192,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
       <div class="modal-header"><div class="modal-title">${escapeHtml(s.course)} - ${escapeHtml(s.topic)}</div><div class="modal-subtitle">${escapeHtml(s.type)} | ${formatLongDate(parseYmd(s.date))}</div></div>
       <div class="modal-body">
         <div class="form-grid">
-          ${detailField('Time', s.timeUnknown ? 'Time not specified in source workbook' : `${s.start} - ${s.end}`)}${detailField('Room', s.room)}${detailField('Instructor', s.instructor)}${detailField('Year', `Year ${s.year}`)}
+          ${detailField('Time', s.timeUnknown ? 'Time not specified in source workbook' : `${s.start} - ${s.end}`)}${detailField('Room', s.room)}${detailFieldMultiline('Instructor(s)', instructorDisplayText(s)||'TBD')}${detailField('Year', `Year ${s.year}`)}
         </div>
         ${labDetails}
         <div class="login-cheatsheet"><strong>Schedule source:</strong> ${scheduleSource === 'firestore' ? 'Synchronized Firestore sessions from All Faculty Summaries — the Faculty Dashboard reads these same sessions.' : 'No synchronized source is loaded. Use Faculty Dashboard → Teaching Summary → Replace & Sync All Faculty Summaries.'}</div>
@@ -1202,12 +1206,17 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
   function detailField(label, value) {
     return `<div class="form-field"><span class="form-label">${escapeHtml(label)}</span><div>${escapeHtml(value)}</div></div>`;
   }
+  function detailFieldMultiline(label, value) {
+    return `<div class="form-field"><span class="form-label">${escapeHtml(label)}</span><div class="detail-multiline">${escapeHtml(value)}</div></div>`;
+  }
 
   function splitInstructorNames(v){return String(v||'').split(/[;\n]+/).map(x=>x.trim()).filter(Boolean)}
   function defaultTeachingRole(type){const t=String(type||'').toUpperCase();if(t==='LEC')return'Lecture';if(t==='SRL')return'SRL';if(t==='LAB')return'Lab Support';return type||'Other'}
   function doeRateForRole(role){return ({'Lecture':0.30,'SRL':0.30,'Lab Lead':0.21,'Lab Primary':0.21,'Lab Support':0.19,'Lab Secondary':0.19})[role]??null}
   function blockHours(start,end){const a=timeToMinutes(start),b=timeToMinutes(end);return b>=a?(b-a)/60:0}
   function reconcileAssignments(existing,namesText,type,start,end,topic){const names=splitInstructorNames(namesText),old=Array.isArray(existing)?existing:[];return names.map((name,i)=>{let prev=old.find(x=>String(x.name||'').toLowerCase()===name.toLowerCase())||old[i]||{};const role=prev.role||defaultTeachingRole(type);const h=Number.isFinite(Number(prev.creditedHours))?Number(prev.creditedHours):blockHours(start,end);const rate=doeRateForRole(role);return {...prev,ucid:prev.ucid||null,name,topic:prev.topic||topic,role,creditedHours:h,doeRate:rate,doeCredit:rate===null?null:Number((h*rate).toFixed(6)),source:'Live timetable edit'}})}
+  function finalizeInstructorAssignments(rows,type,start,end,topic){return (Array.isArray(rows)?rows:[]).filter(a=>String(a?.name||'').trim()).map(a=>{const role=a.role||defaultTeachingRole(type);const h=Number.isFinite(Number(a.creditedHours))?Number(a.creditedHours):blockHours(start,end);const rate=doeRateForRole(role);const out={...a,ucid:a.ucid||null,name:String(a.name||'').trim(),topic:a.topic||topic,role,creditedHours:h,doeRate:rate,doeCredit:rate===null?null:Number((h*rate).toFixed(6)),source:'Live timetable edit'};delete out.__editorKey;return out})}
+  function instructorDisplayText(s){const a=Array.isArray(s?.assignments)?s.assignments:[];const names=a.map(x=>String(x?.name||'').trim()).filter(Boolean);return (names.length?names:splitInstructorNames(s?.instructor||'')).join('\n')}
   function labDetailsFromAssignments(type,assignments,topic){if(String(type).toUpperCase()!=='LAB')return undefined;const map=new Map();for(const a of assignments){const t=a.topic||topic||'Lab';if(!map.has(t))map.set(t,[]);map.get(t).push(a)}return[...map].map(([t,arr])=>({topic:t,instructor:arr.map(a=>`${a.name}${a.role?' ('+a.role+')':''}`).join('; '),room:''}))}
 
   function openSessionForm(existing = null) {
@@ -1215,7 +1224,32 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
     if (scheduleSource !== 'firestore') { toast('Initialize the Live Schedule first. Until then the bundled schedule is read-only.', true); return; }
     const s = existing || {
       id: '', date: ymd(weekStart(selectedWeek, selectedSemester)), week: selectedWeek, semester:selectedSemester, year:1,
-      course:'200', type:'LEC', topic:'New Session', instructor:'', room:'', start:'09:00', end:'10:00'
+      course:'200', type:'LEC', topic:'New Session', instructor:'', room:'', start:'09:00', end:'10:00', assignments:[]
+    };
+    let editorAssignments=sessionAssignmentsForSwap(s).map((a,i)=>({...a,__editorKey:`existing-${i}-${Date.now()}`}));
+    if(!editorAssignments.length&&currentUser?.role==='admin') editorAssignments=[];
+    const renderInstructorEditor=()=>{
+      const host=$('instructor-lines'); if(!host)return;
+      const isAdmin=currentUser?.role==='admin';
+      const usedIds=new Set(editorAssignments.map(a=>String(a.ucid||facultyForAssignment(a)?.__id||'')).filter(Boolean));
+      if(!editorAssignments.length){host.innerHTML='<div class="instructor-empty">No instructor is currently assigned to this session.</div>'}
+      else host.innerHTML=editorAssignments.map((a,i)=>{
+        const matched=facultyForAssignment(a); const currentId=String(a.ucid||matched?.__id||''); const currentName=String(a.name||'').trim();
+        let options='';
+        if(!currentId&&currentName&&swapNameKey(currentName)!==swapNameKey('Other / Unassigned')) options+=`<option value="__current__" selected>${escapeHtml(currentName)} (source/current)</option>`;
+        options+=`<option value="__unassigned__" ${!currentId&&(!currentName||swapNameKey(currentName)===swapNameKey('Other / Unassigned'))?'selected':''}>Other / Unassigned</option>`;
+        for(const f of facultyDirectory){const id=String(f.__id),selected=id===currentId,disabled=!selected&&usedIds.has(id);options+=`<option value="${escapeHtml(id)}" ${selected?'selected':''} ${disabled?'disabled':''}>${escapeHtml(swapFacultyName(f))}</option>`}
+        const credit=swapAssignmentCredit(a); const role=a.role||defaultTeachingRole($('type')?.value||s.type); const meta=[role,credit===null?'DOE unrated':`${Number(credit).toFixed(3)}% DOE`].filter(Boolean).join(' · ');
+        return `<div class="instructor-line" data-instructor-row="${i}"><div><select class="form-select instructor-select" data-instructor-select="${i}" ${isAdmin?'':'disabled'}>${options}</select><div class="instructor-role-note">${escapeHtml(meta)}</div></div>${isAdmin?`<button type="button" class="instructor-remove" data-instructor-remove="${i}">Remove</button>`:''}</div>`;
+      }).join('');
+      document.querySelectorAll('[data-instructor-select]').forEach(el=>el.onchange=e=>{
+        const i=Number(e.target.dataset.instructorSelect); const row=editorAssignments[i]; if(!row)return; const v=e.target.value;
+        if(v==='__current__')return;
+        if(v==='__unassigned__'){row.ucid=null;row.name='Other / Unassigned'}
+        else {const f=facultyDirectory.find(x=>String(x.__id)===String(v));if(!f)return;row.ucid=String(f.__id);row.name=swapFacultyName(f)}
+        renderInstructorEditor();
+      });
+      document.querySelectorAll('[data-instructor-remove]').forEach(el=>el.onclick=()=>{const i=Number(el.dataset.instructorRemove);editorAssignments.splice(i,1);renderInstructorEditor()});
     };
     showModal(`
       <div class="modal-header"><div class="modal-title">${existing ? 'Edit' : 'Add'} Live Session</div><div class="modal-subtitle">Changes are written to Firestore and will update the timetable and Faculty DOE dashboard in real time.</div></div>
@@ -1228,19 +1262,25 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
         ${input('start','Start','time',s.start)}
         ${input('end','End','time',s.end)}
         ${input('topic','Topic','text',s.topic,'full')}
-        ${input('instructor','Instructor','text',s.instructor)}
+        <div class="form-field instructor-editor"><label class="form-label">Instructor(s)</label><div id="instructor-lines" class="instructor-lines"></div>${currentUser?.role==='admin'?'<button type="button" class="btn btn-secondary instructor-add" id="add-instructor-line">+ Add instructor</button><div class="instructor-note">One instructor per line. Select from the active faculty directory. Add/remove controls are administrator-only. Existing teaching role and DOE credit stay with the line when you change the selected faculty.</div>':'<div class="instructor-note">Instructor assignments are managed by administrators.</div>'}</div>
         ${input('room','Room','text',s.room)}
       </div></div>
       <div class="modal-footer"><div>${existing ? '<button type="button" class="btn-danger-text" id="delete-session">Delete Session</button>' : ''}</div><div><button type="button" class="btn btn-secondary" id="cancel-session">Cancel</button> <button class="btn btn-primary" type="submit">Save Live Session</button></div></div>
       </form>`);
+    renderInstructorEditor();
+    if($('add-instructor-line')) $('add-instructor-line').onclick=()=>{
+      const type=$('type')?.value||s.type,start=$('start')?.value||s.start,end=$('end')?.value||s.end,topic=$('topic')?.value||s.topic;
+      const role=defaultTeachingRole(type),h=blockHours(start,end),rate=doeRateForRole(role);
+      editorAssignments.push({__editorKey:`new-${Date.now()}-${Math.random()}`,ucid:null,name:'Other / Unassigned',topic,role,creditedHours:h,doeRate:rate,doeCredit:rate===null?null:Number((h*rate).toFixed(6)),source:'Live timetable edit'});renderInstructorEditor();
+    };
     $('cancel-session').onclick = closeModal;
     if ($('delete-session')) $('delete-session').onclick = () => deleteSession(existing.id);
     $('session-form').onsubmit = async e => {
       e.preventDefault();
       const form = new FormData(e.target); const date = parseYmd(form.get('date'));
       const pos = academicPositionForDate(date);
-      const namesText=form.get('instructor'), topic=form.get('topic'), type=form.get('type'), start=form.get('start'), end=form.get('end');
-      const assignments=reconcileAssignments(existing?.assignments,namesText,type,start,end,topic);
+      const topic=form.get('topic'), type=form.get('type'), start=form.get('start'), end=form.get('end');
+      const assignments=finalizeInstructorAssignments(editorAssignments,type,start,end,topic);
       const next = {
         id: existing?.id || `S${Date.now()}`,
         date: form.get('date'), week:pos.week, semester:pos.semester, year:Number(form.get('year')),
@@ -1252,7 +1292,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
         const batch=db.batch();
         batch.set(ref,{...firestoreSafeSession(next),updatedBy:currentUser.uid,updatedByName:currentUser.name,updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
         const logRef=db.collection(SESSION_LOG_COLLECTION).doc();
-        batch.set(logRef,{action:existing?'update':'create',sessionId:next.id,course:next.course,date:next.date,topic:next.topic,changedBy:currentUser.uid,changedByName:currentUser.name,changedAt:firebase.firestore.FieldValue.serverTimestamp()});
+        batch.set(logRef,{action:existing?'update':'create',sessionId:next.id,course:next.course,date:next.date,topic:next.topic,instructors:assignments.map(a=>({ucid:a.ucid||null,name:a.name,role:a.role,doeCredit:a.doeCredit??null})),changedBy:currentUser.uid,changedByName:currentUser.name,changedAt:firebase.firestore.FieldValue.serverTimestamp()});
         await batch.commit();
         closeModal();
         toast(existing?'Live session updated.':'Live session added.');
@@ -1535,9 +1575,9 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
       <form id="auth-setup-form"><div class="modal-body">
         <div class="login-cheatsheet">
           <strong>Firebase test project:</strong> Tester Teaching (<code>tester-teaching</code>)<br><br>
-          <strong>V9.1 authorization + synchronized admin SWAP:</strong><br>
+          <strong>V9.2 authorization + synchronized admin SWAP + instructor-line editor:</strong><br>
           1. User signs in with Email/Password or Phone.<br>
-          2. V9.1 reads <code>users/{Firebase UID}</code> from Firestore; admin users also load the faculty directory for projected DOE during SWAP.<br>
+          2. V9.2 reads <code>users/{Firebase UID}</code> from Firestore; admin users also load the faculty directory for SWAP and instructor selection.<br>
           3. <code>active: true</code> is required.<br>
           4. <code>role: "viewer"</code> = view only; <code>role: "editor"</code> = view + add/edit/delete.<br><br>
           The page does not yet write timetable sessions to Firestore; only the user role document is read. Source schedule data is loaded from scheduleData.js.
@@ -1606,7 +1646,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
   function openUserManager() {
     if (currentUser?.role !== 'admin') return;
     showModal(`
-      <div class="modal-header"><div class="modal-title">Role Management</div><div class="modal-subtitle">V9.1 keeps user-role management unchanged; SWAP and UI editing are admin-only. Open a timetable block to access SWAP Faculty.</div></div>
+      <div class="modal-header"><div class="modal-title">Role Management</div><div class="modal-subtitle">V9.2 keeps user-role management unchanged. Open a timetable block to access SWAP Faculty; instructor add/remove controls are admin-only.</div></div>
       <div class="modal-body">
         <div class="login-cheatsheet">Manage roles in <strong>Firebase Console &gt; Firestore &gt; users</strong>.<br><br>Each document ID is the Firebase Authentication UID. Use <code>active: true</code> and role <code>viewer</code>, <code>editor</code>, or <code>admin</code>.</div>
       </div><div class="modal-footer"><span></span><button class="btn btn-secondary" id="users-close">Close</button></div>`);
