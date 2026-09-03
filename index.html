@@ -91,8 +91,8 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
   </div>
 
   <div class="test-banner">
-    <strong id="ui-banner-label">V8 LOCAL UI TEST</strong>
-    <span id="ui-banner-message">Authentication and roles remain unchanged; UI settings are edited live and saved only in this browser.</span>
+    <strong id="ui-banner-label">2026-2027 SOURCE SCHEDULE TEST</strong>
+    <span id="ui-banner-message">Year 1-3 class schedules and the Aug 26 Spy Hill lab schedule are loaded. Local edits remain browser-only for this test stage.</span>
     <button id="auth-setup-btn" style="padding:3px 10px;border:1px solid #9a6700;border-radius:999px;background:#fff8dc;color:#664d03;font-size:10.5px;font-weight:700">Auth Setup</button>
   </div>
 
@@ -151,10 +151,15 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
             <div class="fbar-select-wrap">
               <select class="fbar-select" id="filter-month">
                 <option value="all">All Months</option>
+                <option value="7">August</option>
                 <option value="8">September</option>
                 <option value="9">October</option>
                 <option value="10">November</option>
                 <option value="11">December</option>
+                <option value="0">January</option>
+                <option value="1">February</option>
+                <option value="2">March</option>
+                <option value="3">April</option>
               </select>
               <span class="fbar-arrow">v</span>
             </div>
@@ -218,7 +223,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
         <div class="side-panel updates-panel" id="updates-panel" data-ui-editable="Latest Updates panel">
           <div class="side-panel-header">
             <span class="side-panel-title" id="ui-updates-title">Latest Updates</span>
-            <span class="side-panel-sub" id="ui-updates-subtitle">Dummy changes from this browser</span>
+            <span class="side-panel-sub" id="ui-updates-subtitle">Schedule source / local changes</span>
           </div>
           <div class="side-panel-body" id="latest-updates-body"></div>
         </div>
@@ -227,12 +232,12 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
             <span class="side-panel-title" id="ui-export-title">Data Export</span>
           </div>
           <div class="side-panel-body export-panel-body">
-            <div class="export-section-label">Export Dummy Data</div>
+            <div class="export-section-label">Export Schedule Data</div>
             <div class="export-btn-row">
               <button class="export-btn" id="export-csv">CSV</button>
-              <button class="export-btn" id="reset-test-data">Reset Test Data</button>
+              <button class="export-btn" id="reset-test-data">Reload Source Data</button>
             </div>
-            <div class="test-note">Exports contain only the fake sessions in this test environment.</div>
+            <div class="test-note">Exports contain the Year 1-3 schedule plus detailed Spy Hill lab sessions loaded for this test site.</div>
           </div>
         </div>
       </div>
@@ -314,21 +319,26 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="scheduleDataBase.js"></script>
+  <script src="scheduleDataY1.js"></script>
+  <script src="scheduleDataY2.js"></script>
+  <script src="scheduleDataY3.js"></script>
   <script>
 (() => {
   'use strict';
 
-  const STORAGE_KEY = 'ucvm_dummy_sessions_v1';
-  const UPDATES_KEY = 'ucvm_dummy_updates_v1';
-  const BASE_MONDAY = new Date(2026, 7, 31); // Aug 31, 2026
-  const WEEK_COUNT = 16;
+  const STORAGE_KEY = 'ucvm_source_sessions_20260826_v1';
+  const UPDATES_KEY = 'ucvm_source_updates_20260826_v1';
+  const FALL_BASE_MONDAY = new Date(2026, 7, 24);
+  const WINTER_BASE_MONDAY = new Date(2027, 0, 4);
+  const WEEK_COUNT = 17;
   const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
   const DAY_FULL = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 
 
   // Firebase Web configuration is public by design. This local harness uses the
   // separate Tester Teaching project for REAL Authentication and REAL role lookup.
-  // Timetable sessions themselves remain local dummy data in this browser.
+  // Authentication/roles are real. Source schedule data is loaded from scheduleData.js; edits are local-only in this test stage.
   const FIREBASE_CONFIG = {
     apiKey: "AIzaSyDS9VE2zTXv0656_Mh0uDXB67-mZ5Y_LkY",
     authDomain: "tester-teaching.firebaseapp.com",
@@ -431,10 +441,10 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
     academicYear: '2026-2027',
     brand: 'UCVM',
     pageTitle: 'Timetable',
-    bannerLabel: 'V8 LOCAL UI TEST',
-    bannerMessage: 'Authentication and roles remain unchanged; UI settings are edited live and saved only in this browser.',
+    bannerLabel: '2026-2027 SOURCE SCHEDULE TEST',
+    bannerMessage: 'Year 1-3 class schedules and the Aug 26 Spy Hill lab schedule are loaded. Local edits remain browser-only for this test stage.',
     updatesTitle: 'Latest Updates',
-    updatesSubtitle: 'Dummy changes from this browser',
+    updatesSubtitle: 'Schedule source / local changes',
     exportTitle: 'Data Export',
     accent: '#1a3a6b',
     sidebarWidth: 320,
@@ -637,17 +647,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
     });
   }
 
-  const COURSES = [
-    { code: 'VETM 301', year: 1, name: 'Foundations of Veterinary Medicine' },
-    { code: 'VETM 305', year: 1, name: 'Veterinary Anatomy I' },
-    { code: 'VETM 307', year: 1, name: 'Physiology I' },
-    { code: 'VETM 401', year: 2, name: 'Systems Pathology' },
-    { code: 'VETM 405', year: 2, name: 'Clinical Skills II' },
-    { code: 'VETM 409', year: 2, name: 'Pharmacology' },
-    { code: 'VETM 501', year: 3, name: 'Medicine & Surgery' },
-    { code: 'VETM 505', year: 3, name: 'Diagnostic Imaging' },
-    { code: 'VETM 509', year: 3, name: 'Population Health' }
-  ];
+  const COURSES = Array.isArray(window.UCVM_COURSES) ? window.UCVM_COURSES : [];
 
   const accounts = [
     { id: 'admin-001', name: 'Test Administrator', email: 'admin@ucvm.test', role: 'admin' },
@@ -660,7 +660,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
   let sessions = loadSessions();
   let updates = loadUpdates();
   let currentUser = null;
-  let selectedWeek = 3;
+  let selectedWeek = 1;
   let selectedYear = 'all';
   let selectedSemester = 'fall';
   let viewMode = 'week';
@@ -681,7 +681,22 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
   function pad(n) { return String(n).padStart(2, '0'); }
   function ymd(d) { return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
   function addDays(date, days) { const d = new Date(date); d.setDate(d.getDate() + days); return d; }
-  function weekStart(week) { return addDays(BASE_MONDAY, (week - 1) * 7); }
+  function weekStart(week, semester = selectedSemester) {
+    const base = semester === 'winter' ? WINTER_BASE_MONDAY : FALL_BASE_MONDAY;
+    return addDays(base, (week - 1) * 7);
+  }
+  function academicPositionForDate(d) {
+    const fallStart = FALL_BASE_MONDAY, fallEnd = addDays(FALL_BASE_MONDAY, WEEK_COUNT * 7 - 1);
+    const winterStart = WINTER_BASE_MONDAY, winterEnd = addDays(WINTER_BASE_MONDAY, WEEK_COUNT * 7 - 1);
+    if (d >= fallStart && d <= fallEnd) return { semester:'fall', week:Math.floor((d-fallStart)/86400000/7)+1 };
+    if (d >= winterStart && d <= winterEnd) return { semester:'winter', week:Math.floor((d-winterStart)/86400000/7)+1 };
+    return { semester:'fall', week:1 };
+  }
+  function setInitialAcademicPeriod() {
+    const p = academicPositionForDate(new Date());
+    selectedSemester = p.semester; selectedWeek = Math.max(1, Math.min(WEEK_COUNT, p.week));
+    document.querySelectorAll('[data-semester]').forEach(x => x.classList.toggle('active', x.dataset.semester === selectedSemester));
+  }
   function parseYmd(s) { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); }
   function formatDate(d) { return d.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' }); }
   function formatLongDate(d) { return d.toLocaleDateString('en-CA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }); }
@@ -689,48 +704,15 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
   function escapeHtml(s) { return String(s ?? '').replace(/[&<>'"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#039;', '"':'&quot;' }[c])); }
 
   function seedSessions() {
-    const rows = [];
-    let id = 1;
-    const topics = ['Orientation & Foundations','Thorax Anatomy','Cardiovascular Physiology','Inflammation','Clinical Examination','Antimicrobials','Small Animal Medicine','Radiology Cases','Epidemiology'];
-    for (let week = 1; week <= WEEK_COUNT; week++) {
-      const start = weekStart(week);
-      COURSES.forEach((course, idx) => {
-        if ((week + idx) % 3 === 0) return;
-        const dayOffset = (idx + week) % 5;
-        const startHour = 9 + ((idx + week) % 6);
-        const startMin = idx % 2 ? '30' : '00';
-        const duration = idx % 3 === 0 ? 120 : 60;
-        const sh = `${pad(startHour)}:${startMin}`;
-        const endMinutes = timeToMinutes(sh) + duration;
-        const eh = `${pad(Math.floor(endMinutes / 60))}:${pad(endMinutes % 60)}`;
-        const facultyNum = ((idx * 13 + week * 3) % 120) + 1;
-        const f = String(facultyNum).padStart(3, '0');
-        rows.push({
-          id: `S${String(id++).padStart(4, '0')}`,
-          date: ymd(addDays(start, dayOffset)),
-          week,
-          semester: 'fall',
-          year: course.year,
-          course: course.code,
-          type: idx % 4 === 1 ? 'LAB' : idx % 5 === 0 ? 'SRL' : 'LEC',
-          topic: topics[idx],
-          instructor: `Faculty ${f}`,
-          room: idx % 3 === 0 ? 'HSC 1405' : idx % 3 === 1 ? 'VLC 101' : 'Spy Hill Lab',
-          start: sh,
-          end: eh,
-          updatedAt: `2026-08-${pad(10 + ((week + idx) % 14))} 10:${pad((idx * 7) % 60)}`
-        });
-      });
-    }
-    return rows;
+    if (!Array.isArray(window.UCVM_SCHEDULE_DATA)) return [];
+    return window.UCVM_SCHEDULE_DATA.map(row => ({ ...row, labDetails: Array.isArray(row.labDetails) ? row.labDetails.map(x => ({...x})) : undefined }));
   }
 
   function seedUpdates() {
     return [
-      { when: 'Today', who: 'Test Administrator', text: 'Dummy environment initialized' },
-      { when: 'Yesterday', who: 'Faculty 024', text: 'VETM 405 - Clinical Examination moved to VLC 101' },
-      { when: '2 days ago', who: 'Test Administrator', text: 'VETM 305 - Thorax Anatomy time updated' },
-      { when: '3 days ago', who: 'Faculty 001', text: 'Sample timetable record reviewed' }
+      { when: 'Source load', who: 'Schedule audit', text: 'Loaded Year 1, Year 2, Year 3 calendar schedules and Spy Hill Lab Schedule - Final 08.26.26.' },
+      { when: 'Validation', who: 'Schedule audit', text: 'Master List rows were cross-checked against the Fall/Winter calendar views before publishing this test data.' },
+      { when: 'Lab detail', who: 'Schedule audit', text: 'Detailed lab times, stations and instructors use the Aug 26 Spy Hill lab schedule where available.' }
     ];
   }
 
@@ -749,6 +731,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
 
   function init() {
     applyUISettings(uiSettings);
+    setInitialAcademicPeriod();
     populateCourseFilter();
     renderWeekControls();
     bindControls();
@@ -778,7 +761,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
       b.textContent = `W${w}`; b.dataset.week = w;
       b.addEventListener('click', () => { selectedWeek = w; syncWeekUI(); render(); });
       (w <= 8 ? r1 : r2).appendChild(b);
-      const opt = document.createElement('option'); opt.value = w; opt.textContent = `Week ${w} - ${formatDate(weekStart(w))}`;
+      const opt = document.createElement('option'); opt.value = w; opt.textContent = `Week ${w} - ${formatDate(weekStart(w, selectedSemester))}`;
       if (w === selectedWeek) opt.selected = true;
       mobile.appendChild(opt);
     }
@@ -800,14 +783,24 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
       const b = e.target.closest('[data-semester]'); if (!b) return;
       selectedSemester = b.dataset.semester;
       document.querySelectorAll('[data-semester]').forEach(x => x.classList.toggle('active', x === b));
+      $('filter-month').value = 'all';
+      renderWeekControls();
       render();
     });
     $('week-mobile-select').addEventListener('change', e => { selectedWeek = Number(e.target.value); syncWeekUI(); render(); });
-    ['search-input','filter-month','filter-course','filter-type'].forEach(id => $(id).addEventListener(id === 'search-input' ? 'input' : 'change', render));
+    ['search-input','filter-course','filter-type'].forEach(id => $(id).addEventListener(id === 'search-input' ? 'input' : 'change', render));
+    $('filter-month').addEventListener('change', e => {
+      if (e.target.value !== 'all') {
+        selectedSemester = Number(e.target.value) >= 7 ? 'fall' : 'winter';
+        document.querySelectorAll('[data-semester]').forEach(x => x.classList.toggle('active', x.dataset.semester === selectedSemester));
+        renderWeekControls();
+      }
+      render();
+    });
     $('reset-filters').addEventListener('click', resetFilters);
     $('cal-prev').addEventListener('click', () => { selectedWeek = Math.max(1, selectedWeek - 1); syncWeekUI(); render(); });
     $('cal-next').addEventListener('click', () => { selectedWeek = Math.min(WEEK_COUNT, selectedWeek + 1); syncWeekUI(); render(); });
-    $('cal-today').addEventListener('click', () => { selectedWeek = 1; syncWeekUI(); render(); toast('Moved to the first test week (Aug 31, 2026).'); });
+    $('cal-today').addEventListener('click', () => { setInitialAcademicPeriod(); $('filter-month').value='all'; renderWeekControls(); syncWeekUI(); render(); toast('Moved to the current academic week.'); });
     $('cal-week-btn').addEventListener('click', () => { viewMode = 'week'; setViewButtons(); render(); });
     $('cal-month-btn').addEventListener('click', () => { viewMode = 'month'; setViewButtons(); render(); });
     $('color-toggle').addEventListener('click', () => { colorsOn = !colorsOn; $('color-toggle').textContent = `Colors: ${colorsOn ? 'On' : 'Off'}`; render(); });
@@ -832,6 +825,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
     document.querySelectorAll('[data-semester]').forEach(x => x.classList.toggle('active', x.dataset.semester === 'fall'));
     $('search-input').value = ''; $('filter-month').value = 'all'; $('filter-course').value = 'all'; $('filter-type').value = 'all';
     myTimetableOnly = false; if (currentUser) $('my-timetable-btn').textContent = 'My Timetable';
+    selectedWeek = 1; renderWeekControls();
     render();
   }
 
@@ -858,45 +852,64 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
   }
 
   function render() {
-    if (selectedSemester === 'winter') {
-      $('cal-label').textContent = 'Winter 2027 - Dummy placeholder';
-      $('calendar-body').innerHTML = '<div class="empty-state"><strong>Winter test data has not been seeded.</strong><br>Switch back to Fall or add your own dummy sessions as Admin.</div>';
-      return;
-    }
     viewMode === 'week' ? renderWeek() : renderMonth();
   }
 
+  function layoutDaySessions(items) {
+    const sorted = items.map(s => ({ session:s, startM:timeToMinutes(s.start), endM:timeToMinutes(s.end), lane:0, laneCount:1 }))
+      .sort((a,b) => a.startM-b.startM || a.endM-b.endM);
+    const groups=[]; let group=[]; let groupMaxEnd=-1;
+    const flush = () => {
+      if (!group.length) return;
+      const laneEnds=[];
+      group.forEach(item => {
+        let lane=laneEnds.findIndex(end => end <= item.startM);
+        if (lane < 0) { lane=laneEnds.length; laneEnds.push(item.endM); } else laneEnds[lane]=item.endM;
+        item.lane=lane;
+      });
+      const count=Math.max(1,laneEnds.length); group.forEach(item => item.laneCount=count);
+      groups.push(...group); group=[]; groupMaxEnd=-1;
+    };
+    sorted.forEach(item => {
+      if (group.length && item.startM >= groupMaxEnd) flush();
+      group.push(item); groupMaxEnd=Math.max(groupMaxEnd,item.endM);
+    });
+    flush(); return groups;
+  }
+
   function renderWeek() {
-    const start = weekStart(selectedWeek); const end = addDays(start, 4);
-    $('cal-label').textContent = `Week ${selectedWeek} - ${formatDate(start)} to ${formatDate(end)}, ${end.getFullYear()}`;
+    const start = weekStart(selectedWeek, selectedSemester); const end = addDays(start, 4);
+    $('cal-label').textContent = `${selectedSemester === 'winter' ? 'Winter' : 'Fall'} Week ${selectedWeek} - ${formatDate(start)} to ${formatDate(end)}, ${end.getFullYear()}`;
     const data = filteredSessions().filter(s => s.week === selectedWeek);
+    const DAY_START=450, DAY_END=1020, SPAN=DAY_END-DAY_START; // 7:30am-5:00pm
     let html = '<div class="tg-wrap"><div class="tg-corner"></div>';
     for (let i = 0; i < 5; i++) {
       const d = addDays(start, i);
       html += `<div class="tg-day-head"><div class="week-dow">${DAYS[i]}</div><div class="week-date">${d.getDate()}</div></div>`;
     }
     html += '</div><div class="tg-body"><div class="tg-time-axis"><div class="tg-track">';
-    for (let h = 9; h <= 16; h++) {
-      const top = ((h * 60 - 510) / 480) * 100;
-      html += `<span class="tg-hour-label" style="top:${top}%">${h > 12 ? h - 12 : h}:00</span>`;
-    }
+    const marks=[450,480,540,600,660,720,780,840,900,960,1020];
+    marks.forEach(m => {
+      const top=((m-DAY_START)/SPAN)*100, h=Math.floor(m/60), min=m%60, h12=((h+11)%12)+1;
+      html += `<span class="tg-hour-label" style="top:${top}%">${h12}:${String(min).padStart(2,'0')}</span>`;
+    });
     html += '</div></div>';
     for (let day = 0; day < 5; day++) {
       const date = ymd(addDays(start, day));
       html += '<div class="tg-day-col">';
-      for (let h = 9; h <= 16; h++) {
-        const top = ((h * 60 - 510) / 480) * 100;
-        html += `<div class="tg-gridline" style="top:${top}%"></div>`;
-      }
-      data.filter(s => s.date === date).sort((a,b) => a.start.localeCompare(b.start)).forEach(s => {
-        const startM = Math.max(510, timeToMinutes(s.start));
-        const endM = Math.min(990, timeToMinutes(s.end));
-        const top = ((startM - 510) / 480) * 100;
-        const height = Math.max(5, ((endM - startM) / 480) * 100);
-        html += `<div class="tg-block ${colorsOn ? '' : 'colors-off'}" data-session-id="${s.id}" style="top:${top}%;height:${height}%">
+      marks.forEach(m => { const top=((m-DAY_START)/SPAN)*100; html += `<div class="tg-gridline" style="top:${top}%"></div>`; });
+      const dayItems=layoutDaySessions(data.filter(s => s.date === date));
+      dayItems.forEach(item => {
+        const s=item.session;
+        const startM = Math.max(DAY_START, item.startM), endM = Math.min(DAY_END, item.endM);
+        if (endM <= DAY_START || startM >= DAY_END) return;
+        const top = ((startM - DAY_START) / SPAN) * 100;
+        const height = Math.max(3.5, ((endM - startM) / SPAN) * 100);
+        const laneWidth=100/item.laneCount, left=item.lane*laneWidth;
+        html += `<div class="tg-block ${colorsOn ? '' : 'colors-off'}" data-session-id="${escapeHtml(s.id)}" style="top:${top}%;height:${height}%;left:calc(${left}% + 2px);right:auto;width:calc(${laneWidth}% - 4px)">
           <div class="tg-block-l1">${escapeHtml(s.course)} - ${escapeHtml(s.type)}</div>
           <div class="tg-block-l2">${escapeHtml(s.topic)}</div>
-          <div class="tg-block-l3">${escapeHtml(s.start)}-${escapeHtml(s.end)} | ${escapeHtml(s.room)}<br>${escapeHtml(s.instructor)}</div>
+          <div class="tg-block-l3">${escapeHtml(s.start)}-${escapeHtml(s.end)}${s.room ? ` | ${escapeHtml(s.room)}` : ''}<br>${escapeHtml(s.instructor || 'TBD')}</div>
         </div>`;
       });
       html += '</div>';
@@ -907,10 +920,10 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
   }
 
   function renderMonth() {
-    const wstart = weekStart(selectedWeek);
+    const wstart = weekStart(selectedWeek, selectedSemester);
     const monthChoice = $('filter-month').value;
     const month = monthChoice === 'all' ? wstart.getMonth() : Number(monthChoice);
-    const year = 2026;
+    const year = month >= 7 ? 2026 : 2027;
     const first = new Date(year, month, 1); const last = new Date(year, month + 1, 0);
     $('cal-label').textContent = first.toLocaleDateString('en-CA', { month: 'long', year: 'numeric' });
     let monday = new Date(first);
@@ -941,19 +954,23 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
   }
 
   function renderUpdates() {
-    $('latest-updates-body').innerHTML = updates.slice(0, 20).map(u => `<div class="update-item"><div class="update-line-1">${escapeHtml(u.when)} - ${escapeHtml(u.who)}</div><div class="update-line-2">Test environment change</div><div class="update-line-3">${escapeHtml(u.text)}</div></div>`).join('');
+    $('latest-updates-body').innerHTML = updates.slice(0, 20).map(u => `<div class="update-item"><div class="update-line-1">${escapeHtml(u.when)} - ${escapeHtml(u.who)}</div><div class="update-line-2">Schedule source / local change</div><div class="update-line-3">${escapeHtml(u.text)}</div></div>`).join('');
   }
 
   function openSessionDetail(id) {
     const s = sessions.find(x => x.id === id); if (!s) return;
     const edit = canEdit() ? `<button class="btn btn-primary" id="detail-edit">Edit Session</button>` : '';
+    const labDetails = Array.isArray(s.labDetails) && s.labDetails.length > 1
+      ? `<div class="login-cheatsheet"><strong>Lab stations / activities</strong><br><br>${s.labDetails.map(d => `<div style="margin-bottom:8px"><strong>${escapeHtml(d.topic)}</strong>${d.instructor ? `<br>${escapeHtml(d.instructor)}` : ''}${d.room ? `<br><span style="color:var(--text-3)">${escapeHtml(d.room)}</span>` : ''}</div>`).join('')}</div>`
+      : '';
     showModal(`
       <div class="modal-header"><div class="modal-title">${escapeHtml(s.course)} - ${escapeHtml(s.topic)}</div><div class="modal-subtitle">${escapeHtml(s.type)} | ${formatLongDate(parseYmd(s.date))}</div></div>
       <div class="modal-body">
         <div class="form-grid">
           ${detailField('Time', `${s.start} - ${s.end}`)}${detailField('Room', s.room)}${detailField('Instructor', s.instructor)}${detailField('Year', `Year ${s.year}`)}
         </div>
-        <div class="login-cheatsheet"><strong>Dummy record:</strong> edits here affect only localStorage in this browser.</div>
+        ${labDetails}
+        <div class="login-cheatsheet"><strong>Source data:</strong> Year 1-3 class schedule/calendar views plus Spy Hill Lab Schedule Final 08.26.26. Local edits on this test site affect only this browser.</div>
       </div>
       <div class="modal-footer"><button class="btn btn-secondary" id="detail-close">Close</button>${edit}</div>`);
     $('detail-close').onclick = closeModal;
@@ -967,11 +984,11 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
   function openSessionForm(existing = null) {
     if (!canEdit()) { toast('Editor permission is required to change sessions.', true); return; }
     const s = existing || {
-      id: '', date: ymd(weekStart(selectedWeek)), week: selectedWeek, semester:'fall', year:1,
-      course:'VETM 301', type:'LEC', topic:'New Dummy Session', instructor:'Faculty 001', room:'HSC 1405', start:'09:00', end:'10:00'
+      id: '', date: ymd(weekStart(selectedWeek, selectedSemester)), week: selectedWeek, semester:selectedSemester, year:1,
+      course:'200', type:'LEC', topic:'New Local Session', instructor:'', room:'', start:'09:00', end:'10:00'
     };
     showModal(`
-      <div class="modal-header"><div class="modal-title">${existing ? 'Edit' : 'Add'} Dummy Session</div><div class="modal-subtitle">This form never writes to the live timetable.</div></div>
+      <div class="modal-header"><div class="modal-title">${existing ? 'Edit' : 'Add'} Local Session</div><div class="modal-subtitle">This test-stage form saves only in this browser; source workbook data is not changed.</div></div>
       <form id="session-form">
       <div class="modal-body"><div class="form-grid">
         ${input('date','Date','date',s.date)}
@@ -984,24 +1001,24 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
         ${input('instructor','Instructor','text',s.instructor)}
         ${input('room','Room','text',s.room)}
       </div></div>
-      <div class="modal-footer"><div>${existing ? '<button type="button" class="btn-danger-text" id="delete-session">Delete Session</button>' : ''}</div><div><button type="button" class="btn btn-secondary" id="cancel-session">Cancel</button> <button class="btn btn-primary" type="submit">Save Dummy Session</button></div></div>
+      <div class="modal-footer"><div>${existing ? '<button type="button" class="btn-danger-text" id="delete-session">Delete Session</button>' : ''}</div><div><button type="button" class="btn btn-secondary" id="cancel-session">Cancel</button> <button class="btn btn-primary" type="submit">Save Local Session</button></div></div>
       </form>`);
     $('cancel-session').onclick = closeModal;
     if ($('delete-session')) $('delete-session').onclick = () => deleteSession(existing.id);
     $('session-form').onsubmit = e => {
       e.preventDefault();
       const form = new FormData(e.target); const date = parseYmd(form.get('date'));
-      const diffDays = Math.round((date - BASE_MONDAY) / 86400000);
-      const week = Math.floor(diffDays / 7) + 1;
+      const pos = academicPositionForDate(date);
+      const week = pos.week;
       const next = {
         id: existing?.id || `S${Date.now()}`,
-        date: form.get('date'), week, semester:'fall', year:Number(form.get('year')),
+        date: form.get('date'), week, semester:pos.semester, year:Number(form.get('year')),
         course:form.get('course'), type:form.get('type'), topic:form.get('topic'), instructor:form.get('instructor'), room:form.get('room'),
         start:form.get('start'), end:form.get('end'), updatedAt:new Date().toLocaleString('en-CA')
       };
       if (existing) sessions = sessions.map(x => x.id === existing.id ? next : x); else sessions.push(next);
       updates.unshift({ when:'Just now', who:currentUser.name, text:`${next.course} - ${next.topic} ${existing ? 'updated' : 'added'}` });
-      persist(); renderUpdates(); closeModal(); render(); toast('Dummy session saved locally.');
+      persist(); renderUpdates(); closeModal(); render(); toast('Session saved locally in this browser.');
     };
   }
 
@@ -1014,10 +1031,10 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
 
   function deleteSession(id) {
     const s = sessions.find(x => x.id === id); if (!s) return;
-    if (!confirm('Delete this dummy session?')) return;
+    if (!confirm('Delete this local session?')) return;
     sessions = sessions.filter(x => x.id !== id);
     updates.unshift({ when:'Just now', who:currentUser.name, text:`${s.course} - ${s.topic} deleted` });
-    persist(); renderUpdates(); closeModal(); render(); toast('Dummy session deleted.');
+    persist(); renderUpdates(); closeModal(); render(); toast('Local session deleted.');
   }
 
   function initFirebaseAuth() {
@@ -1141,7 +1158,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
     if (requireLocalhost()) return;
     if (!authInitialized || !auth) { toast('Firebase Authentication is not initialized.', true); return; }
     showModal(`
-      <div class="modal-header"><div class="modal-title">Sign in to UCVM Timetable Test</div><div class="modal-subtitle">Choose either Email or Phone. Authentication and role authorization are real; timetable session data is fake/local only.</div></div>
+      <div class="modal-header"><div class="modal-title">Sign in to UCVM Timetable Test</div><div class="modal-subtitle">Choose either Email or Phone. Authentication and role authorization are real; schedule source data is loaded from the uploaded Year 1-3 and lab workbooks, while edits are still local-only.</div></div>
       <div class="modal-body">
         <div class="login-cheatsheet"><strong>Firebase project:</strong> Tester Teaching (<code>tester-teaching</code>)<br>Enable the matching provider in Firebase Authentication. Your UID must also exist under Firestore <code>users/{uid}</code>.</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px">
@@ -1272,11 +1289,11 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
           2. V8 reads <code>users/{Firebase UID}</code> from Firestore.<br>
           3. <code>active: true</code> is required.<br>
           4. <code>role: "viewer"</code> = view only; <code>role: "editor"</code> = view + add/edit/delete.<br><br>
-          The page never reads/writes timetable sessions from Firestore; only the user role document is read.
+          The page does not yet write timetable sessions to Firestore; only the user role document is read. Source schedule data is loaded from scheduleData.js.
         </div>
         <div class="form-field"><label class="form-label">Allowed email domain</label><input class="form-input" id="auth-domain" value="${escapeHtml(authSettings.allowedDomain)}" placeholder="ucalgary.ca"><div class="form-hint">Optional local pre-check. Firestore users/{uid} is the real authorization list.</div></div>
         <div class="form-field"><label class="form-label">Allowed phone number(s) - optional</label><textarea class="form-input" id="auth-allowed-phones" rows="3" placeholder="+14035551234, +14035555678">${escapeHtml(authSettings.allowedPhones)}</textarea><div class="form-hint">Leave blank to let Firestore users/{uid} decide whether an authenticated phone user is authorized.</div></div>
-        <div class="form-field"><label class="form-label">Dummy instructor mapping</label><input class="form-input" id="auth-instructor" value="${escapeHtml(authSettings.instructorAlias)}" placeholder="Faculty 001"><div class="form-hint">Only used for the fake My Timetable filter. You may instead add an optional Firestore field named <code>instructor</code>.</div></div>
+        <div class="form-field"><label class="form-label">Instructor mapping</label><input class="form-input" id="auth-instructor" value="${escapeHtml(authSettings.instructorAlias)}" placeholder="Faculty 001"><div class="form-hint">Used for the My Timetable filter on this test site. You may instead add an optional Firestore field named <code>instructor</code>.</div></div>
         <div class="login-cheatsheet"><strong>Local test URL:</strong><br><code>http://localhost:8765/</code></div>
       </div><div class="modal-footer"><button type="button" class="btn btn-secondary" id="auth-setup-cancel">Cancel</button><button class="btn btn-primary" type="submit">Save Local Settings</button></div></form>`);
     $('auth-setup-cancel').onclick = closeModal;
@@ -1307,9 +1324,9 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
           <strong>Authentication:</strong> Firebase ${escapeHtml(currentUser.provider)} sign-in.<br>
           <strong>Authorization:</strong> Firestore <code>users/${escapeHtml(currentUser.uid)}</code>.<br>
           <strong>Role:</strong> ${escapeHtml(currentUser.role)} &nbsp; <strong>Active:</strong> ${currentUser.active ? 'true' : 'false'}<br>
-          <strong>Timetable sessions:</strong> local dummy data only.
+          <strong>Timetable sessions:</strong> source workbook schedule loaded; any edits are local to this browser for now.
         </div>
-        <div class="form-hint">Dummy My Timetable mapping: <strong>${escapeHtml(currentUser.instructorName)}</strong>.</div>
+        <div class="form-hint">My Timetable mapping: <strong>${escapeHtml(currentUser.instructorName)}</strong>.</div>
       </div>
       <div class="modal-footer"><button class="btn btn-secondary" id="account-close">Close</button><button class="btn btn-primary" id="logout-btn">Sign Out</button></div>`);
     $('account-close').onclick = closeModal;
@@ -1344,7 +1361,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
 
   function openCourseList() {
     showModal(`
-      <div class="modal-header"><div class="modal-title">Dummy Course List</div><div class="modal-subtitle">Sample courses for interface testing</div></div>
+      <div class="modal-header"><div class="modal-title">Course List</div><div class="modal-subtitle">Courses present in the 2026-2027 Year 1-3 schedules</div></div>
       <div class="modal-body"><div class="user-table-wrap"><table class="user-table"><thead><tr><th>Course</th><th>Year</th><th>Name</th></tr></thead><tbody>${COURSES.map(c => `<tr><td><strong>${c.code}</strong></td><td>Year ${c.year}</td><td>${escapeHtml(c.name)}</td></tr>`).join('')}</tbody></table></div></div>
       <div class="modal-footer"><span></span><button class="btn btn-secondary" id="course-close">Close</button></div>`);
     $('course-close').onclick = closeModal;
@@ -1354,13 +1371,13 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
     const rows = [['ID','Date','Week','Year','Course','Type','Topic','Instructor','Room','Start','End'], ...filteredSessions().map(s => [s.id,s.date,s.week,s.year,s.course,s.type,s.topic,s.instructor,s.room,s.start,s.end])];
     const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
     const blob = new Blob([csv], { type:'text/csv;charset=utf-8' });
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'ucvm-dummy-timetable.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(a.href);
-    toast('Dummy CSV exported.');
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'ucvm-source-timetable-2026-2027.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(a.href);
+    toast('Schedule CSV exported.');
   }
 
   function resetTestData() {
-    if (!confirm('Reset all local dummy timetable changes?')) return;
-    sessions = seedSessions(); updates = seedUpdates(); persist(); renderUpdates(); render(); toast('Test data reset.');
+    if (!confirm('Discard local schedule edits and reload the workbook-derived source schedule?')) return;
+    sessions = seedSessions(); updates = seedUpdates(); persist(); renderUpdates(); render(); toast('Source schedule reloaded.');
   }
 
   function showModal(content) {
