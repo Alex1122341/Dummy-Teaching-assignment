@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>UCVM Timetable - Synced All Faculty Summaries</title>
+  <title>UCVM Timetable - Synced All Faculty Summaries + Admin Swap</title>
   <style>
 :root {
   --bg:#eef0f4; --surface:#fff; --surface-2:#f6f7f9; --surface-3:#eceef2;
@@ -38,6 +38,18 @@ html.dark .tg-type-quiz-midterm,html.dark .cal-event.tg-type-quiz-midterm{backgr
 html.dark .tg-type-osce,html.dark .cal-event.tg-type-osce{background:#442039;border-left-color:#f472b6}
 html.dark .tg-type-exam,html.dark .cal-event.tg-type-exam{background:#471d1d;border-left-color:#f87171}
 html.dark .tg-type-other,html.dark .cal-event.tg-type-other{background:#263244;border-left-color:#94a3b8}
+
+/* Admin faculty swap */
+.tg-block,.cal-event{position:relative}
+.tg-block.admin-swap-enabled{padding-right:42px}.cal-event.admin-swap-enabled{padding-right:39px}
+.swap-chip{position:absolute;top:2px;right:2px;z-index:8;border:1px solid rgba(26,58,107,.42);background:rgba(255,255,255,.92);color:#14305a;border-radius:4px;padding:1px 4px;font-size:8px;font-weight:900;line-height:1.35;letter-spacing:.02em;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.swap-chip:hover{background:#14305a;color:#fff;border-color:#14305a}.dark .swap-chip{background:rgba(17,30,48,.94);color:#dbeafe;border-color:#55729c}.dark .swap-chip:hover{background:#dbeafe;color:#14305a}
+.modal-box.swap-wide{width:min(1120px,96vw)}
+.swap-session-card{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:12px}.swap-session-cell{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);padding:8px 10px}.swap-session-label{font-size:9px;font-weight:800;color:var(--text-3);text-transform:uppercase;letter-spacing:.04em}.swap-session-value{font-size:12px;font-weight:700;margin-top:2px;overflow-wrap:anywhere}
+.swap-current-card{border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;margin:10px 0;background:var(--surface-2)}.swap-current-title{font-size:10px;font-weight:850;text-transform:uppercase;color:var(--text-3);letter-spacing:.05em;margin-bottom:5px}.swap-current-line{display:flex;gap:14px;flex-wrap:wrap;font-size:12px}.swap-current-line strong{color:var(--accent)}
+.swap-search-row{display:flex;gap:8px;align-items:end;margin:12px 0 8px}.swap-search-row .form-field{margin-bottom:0;flex:1}.swap-help{font-size:10.5px;color:var(--text-3);line-height:1.4;margin-bottom:8px}
+.swap-table-wrap{max-height:430px;overflow:auto;border:1px solid var(--border);border-radius:var(--radius)}.swap-table{width:100%;border-collapse:collapse;font-size:11px;min-width:900px}.swap-table th,.swap-table td{padding:7px 8px;border-bottom:1px solid var(--border);text-align:left;vertical-align:middle}.swap-table th{position:sticky;top:0;background:var(--surface-2);z-index:2;font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-3)}.swap-table tr:hover td{background:var(--accent-light)}.swap-num{font-variant-numeric:tabular-nums;white-space:nowrap}.swap-projected{font-weight:850;color:var(--accent)}.swap-status{display:inline-block;padding:2px 6px;border-radius:999px;font-size:9.5px;font-weight:800;border:1px solid var(--border)}.swap-under{background:#fff8e6;color:#9a6700;border-color:#ebcd83}.swap-within{background:#ecfdf3;color:#166534;border-color:#a7d7b5}.swap-over{background:#fff1f2;color:#b91c1c;border-color:#f3b4ba}.swap-unknown{background:var(--surface-2);color:var(--text-3)}
+@media(max-width:760px){.swap-session-card{grid-template-columns:1fr 1fr}.modal-box.swap-wide{width:98vw}.swap-chip{font-size:7px}.tg-block.admin-swap-enabled,.cal-event.admin-swap-enabled{padding-right:34px}}
 
 .modal-container{display:none}.modal-container.open{display:block;position:fixed;inset:0;z-index:200}.modal-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(2px)}.modal-box{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);width:min(650px,94vw);max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg)}.modal-strip{height:4px;background:var(--accent);border-radius:var(--radius-lg) var(--radius-lg) 0 0}.modal-close{position:absolute;top:13px;right:13px;width:28px;height:28px;border-radius:50%;background:var(--surface-2);border:1px solid var(--border);font-size:12px;color:var(--text-2);display:flex;align-items:center;justify-content:center}.modal-header{padding:18px 22px 12px}.modal-title{font-size:16px;font-weight:700}.modal-subtitle{font-size:12px;color:var(--text-3);margin-top:4px}.modal-body{padding:4px 22px 12px}.modal-footer{padding:13px 22px;display:flex;gap:8px;justify-content:space-between;border-top:1px solid var(--border);align-items:center}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.form-field{display:flex;flex-direction:column;gap:4px;margin-bottom:12px}.form-field.full{grid-column:1/-1}.form-label{font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.4px}.form-input,.form-select,.form-textarea{padding:8px 10px;font-size:13px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface-2);color:var(--text);width:100%}.form-hint{font-size:10.5px;color:var(--text-3)}.btn{padding:7px 16px;font-size:13px;font-weight:600;border-radius:var(--radius)}.btn-primary{background:var(--accent);color:#fff;border:1px solid var(--accent)}.btn-secondary{background:var(--surface-2);color:var(--text-2);border:1px solid var(--border)}.btn-danger-text{color:var(--danger);font-size:12px;font-weight:600}.login-cheatsheet{background:var(--surface-2);border:1px solid var(--border);padding:10px;border-radius:var(--radius);font-size:11.5px;line-height:1.5;margin-bottom:12px}.user-table{width:100%;border-collapse:collapse;font-size:11.5px}.user-table th,.user-table td{padding:7px 8px;border-bottom:1px solid var(--border);text-align:left}.user-table th{position:sticky;top:0;background:var(--surface-2);font-size:10px;text-transform:uppercase;color:var(--text-3)}.user-table-wrap{max-height:430px;overflow:auto;border:1px solid var(--border);border-radius:var(--radius)}.role-badge{display:inline-block;padding:2px 6px;border-radius:999px;background:var(--accent-light);color:var(--accent);font-size:10px;font-weight:700}
 .toast{position:fixed;bottom:54px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--text);color:#fff;padding:11px 20px;border-radius:var(--radius-lg);font-size:13px;font-weight:500;box-shadow:var(--shadow-lg);z-index:300;opacity:0;transition:all 220ms ease}.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}.toast.error{background:var(--danger)}
@@ -108,7 +120,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
   </div>
 
   <div class="test-banner">
-    <strong id="ui-banner-label">2026-2027 SOURCE SCHEDULE TEST</strong>
+    <strong id="ui-banner-label">2026-2027 SYNCED SCHEDULE · ADMIN SWAP V9</strong>
     <span id="ui-banner-message">2026-27 timetable is synchronized with the Faculty Dashboard from All Faculty Summaries. Both pages use the same live Firestore sessions.</span>
     <button id="auth-setup-btn" style="padding:3px 10px;border:1px solid #9a6700;border-radius:999px;background:#fff8dc;color:#664d03;font-size:10.5px;font-weight:700">Auth Setup</button>
   </div>
@@ -468,7 +480,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
     academicYear: '2026-2027',
     brand: 'UCVM',
     pageTitle: 'Timetable',
-    bannerLabel: '2026-2027 SOURCE SCHEDULE TEST',
+    bannerLabel: '2026-2027 SYNCED SCHEDULE · ADMIN SWAP V9',
     bannerMessage: '2026-27 timetable is synchronized with the Faculty Dashboard from All Faculty Summaries. Both pages use the same live Firestore sessions.',
     updatesTitle: 'Latest Updates',
     updatesSubtitle: 'Schedule source / local changes',
@@ -687,6 +699,8 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
   let sessions = [];
   let updates = loadUpdates();
   let sessionUnsubscribe = null;
+  let facultyUnsubscribe = null;
+  let facultyDirectory = [];
   let scheduleSource = 'bundled';
   let currentUser = null;
   let selectedWeek = 1;
@@ -804,6 +818,129 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
       populateCourseFilter(); updateScheduleSourceUI();
       toast('The synchronized Firestore timetable could not be read.', true); render();
     });
+  }
+
+
+  function swapNumeric(v){ if(v===undefined||v===null||v==='') return null; const n=Number(v); return Number.isFinite(n)?n:null; }
+  function swapNameKey(v){ return String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim().replace(/\s+/g,' '); }
+  function swapFacultyName(f){ return String(f?.preferredFullName||f?.hrFirstLast||f?.hrFullName||f?.facultySummary2026_27?.displayName||f?.__id||''); }
+  function swapSummary(f){ const x=f?.facultySummary2026_27; return x&&typeof x==='object'&&!Array.isArray(x)?x:null; }
+  function swapFacultyAliases(f){ const out=new Set(); [swapFacultyName(f),f?.preferredFullName,f?.hrFullName,f?.hrFirstLast,f?.teachingAssignmentName,swapSummary(f)?.displayName].forEach(v=>{const k=swapNameKey(v);if(k)out.add(k)}); if(f?.firstName&&f?.lastName)out.add(swapNameKey(`${f.firstName} ${f.lastName}`)); return out; }
+  function swapContractTeachingDOE(f){ return [f?.doe?.teaching,f?.doeTeaching,f?.teachingDOE,f?.contractTeachingDOE].map(swapNumeric).find(v=>v!==null) ?? null; }
+  function swapAssignmentCredit(a){ const c=swapNumeric(a?.doeCredit); if(c!==null)return c; const r=swapNumeric(a?.doeRate),h=swapNumeric(a?.creditedHours); return r!==null&&h!==null?Number((r*h).toFixed(6)):null; }
+  function swapAssignmentHours(a,s){ const h=swapNumeric(a?.creditedHours); if(h!==null)return h; if(s?.timeUnknown)return null; try{return blockHours(s.start,s.end)}catch{return null} }
+
+  function unsubscribeFacultyDirectory(){ if(facultyUnsubscribe){try{facultyUnsubscribe()}catch(_){ } facultyUnsubscribe=null;} facultyDirectory=[]; }
+  function subscribeFacultyDirectory(){
+    if(!db||currentUser?.role!=='admin'){unsubscribeFacultyDirectory();return;}
+    if(facultyUnsubscribe){try{facultyUnsubscribe()}catch(_){}}
+    facultyUnsubscribe=db.collection('faculty').onSnapshot(snapshot=>{
+      facultyDirectory=snapshot.docs.map(d=>({__id:d.id,...d.data()})).filter(f=>f.active!==false).sort((a,b)=>swapFacultyName(a).localeCompare(swapFacultyName(b)));
+    },err=>{console.error('[faculty subscription for swap]',err);facultyDirectory=[];toast('Faculty list could not be loaded for SWAP. Check admin faculty read rules.',true)});
+  }
+
+  function buildSwapDoeState(){
+    const state=new Map(), aliases=new Map();
+    for(const f of facultyDirectory){
+      const id=String(f.__id); const summary=swapSummary(f); const fixed=swapNumeric(summary?.sourceNonTimetableTeachingDOE); const sourceAssigned=swapNumeric(summary?.assignedTeachingDOE);
+      state.set(id,{faculty:f,scheduled:0,fixed,sourceAssigned,contract:swapContractTeachingDOE(f)});
+      for(const a of swapFacultyAliases(f)) if(!aliases.has(a)) aliases.set(a,id);
+    }
+    for(const sess of sessions){
+      for(const a of (Array.isArray(sess.assignments)?sess.assignments:[])){
+        let id=String(a?.ucid||'').trim(); if(!id) id=aliases.get(swapNameKey(a?.name))||'';
+        const row=state.get(id); if(!row)continue; const c=swapAssignmentCredit(a); if(c!==null)row.scheduled+=c;
+      }
+    }
+    for(const row of state.values()) row.current = row.fixed!==null ? row.fixed+row.scheduled : (row.sourceAssigned!==null ? row.sourceAssigned : null);
+    return state;
+  }
+
+  function sessionAssignmentsForSwap(s){
+    if(Array.isArray(s?.assignments)&&s.assignments.length)return s.assignments.map(a=>({...a}));
+    return reconcileAssignments([],s?.instructor||'',s?.type||'',s?.start||'00:00',s?.end||'00:00',s?.topic||'');
+  }
+  function facultyForAssignment(a){
+    const id=String(a?.ucid||'').trim(); if(id)return facultyDirectory.find(f=>String(f.__id)===id)||null;
+    const key=swapNameKey(a?.name); if(!key)return null;
+    return facultyDirectory.find(f=>swapFacultyAliases(f).has(key))||null;
+  }
+  function swapStatus(contract,projected){
+    if(contract===null||projected===null)return{label:'No target',cls:'swap-unknown',remaining:null};
+    const remaining=contract-projected;
+    if(Math.abs(remaining)<=0.25)return{label:'At target',cls:'swap-within',remaining};
+    if(remaining>0)return{label:'Under',cls:'swap-under',remaining};
+    return{label:'Over',cls:'swap-over',remaining};
+  }
+  function swapPct(v,d=2){return v===null?'—':`${Number(v).toFixed(d)}%`}
+
+  function openSwapModal(sessionId,initialAssignmentIndex=0){
+    if(currentUser?.role!=='admin'){toast('Admin permission is required to swap faculty.',true);return;}
+    if(scheduleSource!=='firestore'){toast('The synchronized live timetable must be loaded first.',true);return;}
+    const s=sessions.find(x=>x.id===sessionId); if(!s)return;
+    const assignments=sessionAssignmentsForSwap(s); if(!assignments.length){toast('This course block has no faculty assignment to swap.',true);return;}
+    if(!facultyDirectory.length){toast('Faculty directory is still loading. Try SWAP again in a moment.',true);return;}
+    let selected=Math.min(Math.max(0,Number(initialAssignmentIndex)||0),assignments.length-1);
+    const doeState=buildSwapDoeState();
+    const renderSwap=()=>{
+      const outgoing=assignments[selected], outgoingFaculty=facultyForAssignment(outgoing); const outgoingId=String(outgoing?.ucid||outgoingFaculty?.__id||'');
+      const credit=swapAssignmentCredit(outgoing), outState=outgoingId?doeState.get(outgoingId):null; const outCurrent=outState?.current??null; const outAfter=(outCurrent!==null&&credit!==null)?outCurrent-credit:null;
+      showModal(`
+        <div class="modal-header"><div class="modal-title">SWAP Faculty · ${escapeHtml(s.course)} ${escapeHtml(s.type)}</div><div class="modal-subtitle">Admin-only reassignment. The Faculty Dashboard will update from the same Firestore session immediately after the swap.</div></div>
+        <div class="modal-body">
+          <div class="swap-session-card">
+            <div class="swap-session-cell"><div class="swap-session-label">Date</div><div class="swap-session-value">${escapeHtml(formatLongDate(parseYmd(s.date)))}</div></div>
+            <div class="swap-session-cell"><div class="swap-session-label">Time</div><div class="swap-session-value">${escapeHtml(s.timeUnknown?'Time not specified':`${s.start} - ${s.end}`)}</div></div>
+            <div class="swap-session-cell"><div class="swap-session-label">Year / Course</div><div class="swap-session-value">Year ${escapeHtml(s.year)} · ${escapeHtml(s.course)}</div></div>
+            <div class="swap-session-cell"><div class="swap-session-label">Topic</div><div class="swap-session-value">${escapeHtml(s.topic||'')}</div></div>
+          </div>
+          <label class="form-field"><span class="form-label">Swap out current faculty assignment</span><select class="form-select" id="swap-out-select">${assignments.map((a,i)=>`<option value="${i}" ${i===selected?'selected':''}>${escapeHtml(a.name||'Unassigned')} · ${escapeHtml(a.role||s.type||'')} · ${swapPct(swapAssignmentCredit(a))}</option>`).join('')}</select></label>
+          <div class="swap-current-card"><div class="swap-current-title">Current assignment being removed</div><div class="swap-current-line"><span><strong>${escapeHtml(outgoing?.name||'Unknown')}</strong></span><span>Role: <strong>${escapeHtml(outgoing?.role||s.type||'')}</strong></span><span>DOE credit: <strong>${credit===null?'Unrated':swapPct(credit)}</strong></span><span>Current Assigned DOE: <strong>${swapPct(outCurrent)}</strong></span><span>After removal: <strong>${credit===null?'Unrated impact':swapPct(outAfter)}</strong></span></div></div>
+          <div class="swap-search-row"><label class="form-field"><span class="form-label">Find replacement faculty</span><input class="form-input" id="swap-search" placeholder="Search name, specialty, teaching area, UCID..."></label></div>
+          <div class="swap-help">Each candidate shows their <strong>current live Assigned Teaching DOE</strong> and the <strong>projected Assigned DOE after this block is added</strong>. Contract Teaching DOE is shown when it exists in the faculty record. The replacement inherits this assignment's role, credited hours and DOE rate. ${credit===null?'<strong>This activity has no numeric DOE rate in the source, so the projected DOE cannot be calculated.</strong>':''}</div>
+          <div class="swap-table-wrap"><table class="swap-table"><thead><tr><th>Faculty</th><th>Contract Teaching DOE</th><th>Current Assigned DOE</th><th>Projected After Swap</th><th>Remaining / Over</th><th>Status</th><th></th></tr></thead><tbody id="swap-candidate-body"></tbody></table></div>
+        </div>
+        <div class="modal-footer"><span class="form-hint">Swap is written to Firestore and logged in session_change_log.</span><button class="btn btn-secondary" id="swap-cancel">Cancel</button></div>`);
+      const box=document.querySelector('#modal .modal-box'); if(box)box.classList.add('swap-wide');
+      $('swap-cancel').onclick=closeModal;
+      $('swap-out-select').onchange=e=>{selected=Number(e.target.value)||0;renderSwap()};
+      const renderCandidates=()=>{
+        const q=swapNameKey($('swap-search')?.value||'');
+        const existingIds=new Set(assignments.map(a=>String(a.ucid||facultyForAssignment(a)?.__id||'')).filter(Boolean));
+        const rows=facultyDirectory.filter(f=>{
+          if(String(f.__id)===outgoingId)return false;
+          if(existingIds.has(String(f.__id)))return false;
+          if(!q)return true;
+          const hay=swapNameKey([swapFacultyName(f),f.ucid,f.email,f.teachingArea,f.teachingAreaEmphasis,f.boardSpecialties,f.currentTitle,f.rank].filter(Boolean).join(' ')); return hay.includes(q);
+        });
+        $('swap-candidate-body').innerHTML=rows.map(f=>{
+          const st=doeState.get(String(f.__id)); const current=st?.current??null; const projected=(current!==null&&credit!==null)?current+credit:null; const status=swapStatus(st?.contract??null,projected); const rem=status.remaining;
+          const afterText=credit===null?(current===null?'—':`${swapPct(current)} + unrated`):swapPct(projected);
+          const remText=rem===null?'—':(rem>=0?`${rem.toFixed(2)}% remaining`:`${Math.abs(rem).toFixed(2)}% over`);
+          return `<tr><td><strong>${escapeHtml(swapFacultyName(f))}</strong><br><span class="form-hint">${escapeHtml(f.teachingArea||f.teachingAreaEmphasis||f.currentTitle||'')} ${f.ucid?`· ${escapeHtml(f.ucid)}`:''}</span></td><td class="swap-num">${swapPct(st?.contract??null)}</td><td class="swap-num">${swapPct(current)}</td><td class="swap-num swap-projected">${afterText}</td><td class="swap-num">${remText}</td><td><span class="swap-status ${status.cls}">${status.label}</span></td><td><button class="btn btn-primary btn-swap-confirm" data-swap-faculty="${escapeHtml(f.__id)}">SWAP</button></td></tr>`;
+        }).join('')||'<tr><td colspan="7" style="padding:20px;text-align:center;color:var(--text-3)">No faculty match this search.</td></tr>';
+        document.querySelectorAll('[data-swap-faculty]').forEach(btn=>btn.onclick=()=>performFacultySwap(s,assignments,selected,btn.dataset.swapFaculty,doeState));
+      };
+      $('swap-search').oninput=renderCandidates; renderCandidates();
+    };
+    renderSwap();
+  }
+
+  async function performFacultySwap(session,assignments,outIndex,newFacultyId,doeState){
+    if(currentUser?.role!=='admin')return;
+    const replacement=facultyDirectory.find(f=>String(f.__id)===String(newFacultyId)); if(!replacement)return;
+    const outgoing=assignments[outIndex]; if(!outgoing)return;
+    const oldFaculty=facultyForAssignment(outgoing); const oldName=outgoing.name||swapFacultyName(oldFaculty)||'Unknown'; const newName=swapFacultyName(replacement);
+    const credit=swapAssignmentCredit(outgoing), currentNew=doeState.get(String(replacement.__id))?.current??null, projectedNew=(currentNew!==null&&credit!==null)?currentNew+credit:null;
+    if(!confirm(`Swap ${oldName} to ${newName} for ${session.course} - ${session.topic}?\n\n${credit===null?'DOE impact: this activity is unrated.':`DOE credit transferred: ${credit.toFixed(2)}%\n${newName}: ${currentNew===null?'current DOE unavailable':currentNew.toFixed(2)+'%'} → ${projectedNew===null?'projected unavailable':projectedNew.toFixed(2)+'%'}`}`))return;
+    const nextAssignments=assignments.map((a,i)=>i===outIndex?{...a,ucid:String(replacement.__id),name:newName,category:'Faculty',source:'Admin SWAP',swappedFrom:{ucid:String(outgoing.ucid||oldFaculty?.__id||''),name:oldName},swappedAt:new Date().toISOString()}:a);
+    const next={...session,assignments:nextAssignments,instructor:nextAssignments.map(a=>a.name).filter(Boolean).join('; '),labDetails:labDetailsFromAssignments(session.type,nextAssignments,session.topic),sourceSystem:'Synchronized live timetable'};
+    try{
+      const batch=db.batch(),ref=db.collection(SESSION_COLLECTION).doc(session.id),logRef=db.collection(SESSION_LOG_COLLECTION).doc();
+      batch.set(ref,{...firestoreSafeSession(next),updatedBy:currentUser.uid,updatedByName:currentUser.name,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
+      batch.set(logRef,{action:'swap_faculty',sessionId:session.id,course:session.course,date:session.date,topic:session.topic,role:outgoing.role||session.type||'',doeCredit:credit,fromFaculty:{ucid:String(outgoing.ucid||oldFaculty?.__id||''),name:oldName},toFaculty:{ucid:String(replacement.__id),name:newName},toFacultyCurrentAssignedDOE:currentNew,toFacultyProjectedAssignedDOE:projectedNew,changedBy:currentUser.uid,changedByName:currentUser.name,changedAt:firebase.firestore.FieldValue.serverTimestamp()});
+      await batch.commit(); closeModal(); toast(`SWAP complete: ${oldName} → ${newName}. Faculty DOE will update automatically.`);
+    }catch(err){console.error('[faculty swap]',err);toast('SWAP failed. Check Firestore session write permissions.',true)}
   }
 
   async function initializeLiveSchedule() {
@@ -989,7 +1126,8 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
         const top = ((startM - DAY_START) / SPAN) * 100;
         const height = Math.max(3.5, ((endM - startM) / SPAN) * 100);
         const laneWidth=100/item.laneCount, left=item.lane*laneWidth;
-        html += `<div class="tg-block ${colorsOn ? sessionTypeClass(s.type) : 'colors-off'}" data-session-id="${escapeHtml(s.id)}" style="top:${top}%;height:${height}%;left:calc(${left}% + 2px);right:auto;width:calc(${laneWidth}% - 4px)">
+        html += `<div class="tg-block ${colorsOn ? sessionTypeClass(s.type) : 'colors-off'} ${isAdmin()?'admin-swap-enabled':''}" data-session-id="${escapeHtml(s.id)}" style="top:${top}%;height:${height}%;left:calc(${left}% + 2px);right:auto;width:calc(${laneWidth}% - 4px)">
+          ${isAdmin()?`<button class="swap-chip" type="button" data-swap-session-id="${escapeHtml(s.id)}" title="Swap faculty assignment">SWAP</button>`:''}
           <div class="tg-block-l1">${escapeHtml(s.course)} - ${escapeHtml(s.type)}</div>
           <div class="tg-block-l2">${escapeHtml(s.topic)}</div>
           <div class="tg-block-l3">${escapeHtml(s.start)}-${escapeHtml(s.end)}${s.room ? ` | ${escapeHtml(s.room)}` : ''}<br>${escapeHtml(s.instructor || 'TBD')}</div>
@@ -1021,7 +1159,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
         const cell = addDays(cursor, i); const dateStr = ymd(cell);
         const events = data.filter(s => s.date === dateStr).slice(0, 4);
         html += `<div class="cal-cell"><div class="cal-date-num">${cell.getDate()}</div><div class="cal-events">`;
-        events.forEach(s => html += `<div class="cal-event ${colorsOn ? sessionTypeClass(s.type) : 'colors-off'}" data-session-id="${escapeHtml(s.id)}"><div class="cal-event-l1">${escapeHtml(s.course)} ${escapeHtml(s.type)}</div><div class="cal-event-l2">${s.timeUnknown?'Time not specified':escapeHtml(s.start)} ${escapeHtml(s.topic)}</div></div>`);
+        events.forEach(s => html += `<div class="cal-event ${colorsOn ? sessionTypeClass(s.type) : 'colors-off'} ${isAdmin()?'admin-swap-enabled':''}" data-session-id="${escapeHtml(s.id)}">${isAdmin()?`<button class="swap-chip" type="button" data-swap-session-id="${escapeHtml(s.id)}" title="Swap faculty assignment">SWAP</button>`:''}<div class="cal-event-l1">${escapeHtml(s.course)} ${escapeHtml(s.type)}</div><div class="cal-event-l2">${s.timeUnknown?'Time not specified':escapeHtml(s.start)} ${escapeHtml(s.topic)}</div></div>`);
         html += '</div></div>';
       }
       cursor = addDays(cursor, 7);
@@ -1033,7 +1171,8 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
   }
 
   function bindSessionBlocks() {
-    document.querySelectorAll('[data-session-id]').forEach(el => el.addEventListener('click', () => openSessionDetail(el.dataset.sessionId)));
+    document.querySelectorAll('[data-swap-session-id]').forEach(btn => btn.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); openSwapModal(btn.dataset.swapSessionId); }));
+    document.querySelectorAll('[data-session-id]').forEach(el => el.addEventListener('click', e => { if (e.target.closest('[data-swap-session-id]')) return; openSessionDetail(el.dataset.sessionId); }));
   }
 
   function renderUpdates() {
@@ -1043,6 +1182,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
   function openSessionDetail(id) {
     const s = sessions.find(x => x.id === id); if (!s) return;
     const edit = canEdit() ? `<button class="btn btn-primary" id="detail-edit">Edit Session</button>` : '';
+    const swap = isAdmin() ? `<button class="btn btn-primary" id="detail-swap">SWAP Faculty</button>` : '';
     const labDetails = Array.isArray(s.labDetails) && s.labDetails.length > 1
       ? `<div class="login-cheatsheet"><strong>Lab stations / activities</strong><br><br>${s.labDetails.map(d => `<div style="margin-bottom:8px"><strong>${escapeHtml(d.topic)}</strong>${d.instructor ? `<br>${escapeHtml(d.instructor)}` : ''}${d.room ? `<br><span style="color:var(--text-3)">${escapeHtml(d.room)}</span>` : ''}</div>`).join('')}</div>`
       : '';
@@ -1055,8 +1195,9 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
         ${labDetails}
         <div class="login-cheatsheet"><strong>Schedule source:</strong> ${scheduleSource === 'firestore' ? 'Synchronized Firestore sessions from All Faculty Summaries — the Faculty Dashboard reads these same sessions.' : 'No synchronized source is loaded. Use Faculty Dashboard → Teaching Summary → Replace & Sync All Faculty Summaries.'}</div>
       </div>
-      <div class="modal-footer"><button class="btn btn-secondary" id="detail-close">Close</button>${edit}</div>`);
+      <div class="modal-footer"><button class="btn btn-secondary" id="detail-close">Close</button><div>${swap}${edit}</div></div>`);
     $('detail-close').onclick = closeModal;
+    if ($('detail-swap')) $('detail-swap').onclick = () => openSwapModal(s.id);
     if ($('detail-edit')) $('detail-edit').onclick = () => openSessionForm(s);
   }
 
@@ -1163,6 +1304,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
           currentUser = null;
           myTimetableOnly = false;
           if (sessionUnsubscribe) { try { sessionUnsubscribe(); } catch (_) {} sessionUnsubscribe = null; }
+          unsubscribeFacultyDirectory();
           scheduleSource = 'bundled';
           sessions = seedSessions();
           updateAuthUI();
@@ -1220,6 +1362,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
           updateAuthUI();
           renderUpdates();
           subscribeSessions();
+          if (profile.role === 'admin') subscribeFacultyDirectory(); else unsubscribeFacultyDirectory();
           render();
           setAppLocked(false);
           updateScheduleSourceUI();
@@ -1394,9 +1537,9 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
       <form id="auth-setup-form"><div class="modal-body">
         <div class="login-cheatsheet">
           <strong>Firebase test project:</strong> Tester Teaching (<code>tester-teaching</code>)<br><br>
-          <strong>V8 authorization:</strong><br>
+          <strong>V9 authorization + synchronized admin SWAP:</strong><br>
           1. User signs in with Email/Password or Phone.<br>
-          2. V8 reads <code>users/{Firebase UID}</code> from Firestore.<br>
+          2. V9 reads <code>users/{Firebase UID}</code> from Firestore; admin users also load the faculty directory for projected DOE during SWAP.<br>
           3. <code>active: true</code> is required.<br>
           4. <code>role: "viewer"</code> = view only; <code>role: "editor"</code> = view + add/edit/delete.<br><br>
           The page does not yet write timetable sessions to Firestore; only the user role document is read. Source schedule data is loaded from scheduleData.js.
@@ -1465,7 +1608,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
   function openUserManager() {
     if (currentUser?.role !== 'admin') return;
     showModal(`
-      <div class="modal-header"><div class="modal-title">Role Management</div><div class="modal-subtitle">V8 keeps user-role management unchanged; UI editing is local-only and admin-only.</div></div>
+      <div class="modal-header"><div class="modal-title">Role Management</div><div class="modal-subtitle">V9 keeps user-role management unchanged; SWAP and UI editing are admin-only.</div></div>
       <div class="modal-body">
         <div class="login-cheatsheet">Manage roles in <strong>Firebase Console &gt; Firestore &gt; users</strong>.<br><br>Each document ID is the Firebase Authentication UID. Use <code>active: true</code> and role <code>viewer</code>, <code>editor</code>, or <code>admin</code>.</div>
       </div><div class="modal-footer"><span></span><button class="btn btn-secondary" id="users-close">Close</button></div>`);
