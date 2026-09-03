@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>UCVM Timetable - V8 Admin UI Editor</title>
+  <title>UCVM Timetable - Synced All Faculty Summaries</title>
   <style>
 :root {
   --bg:#eef0f4; --surface:#fff; --surface-2:#f6f7f9; --surface-3:#eceef2;
@@ -109,7 +109,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
 
   <div class="test-banner">
     <strong id="ui-banner-label">2026-2027 SOURCE SCHEDULE TEST</strong>
-    <span id="ui-banner-message">Year 1-3 class schedules and the Aug 26 Spy Hill lab schedule are loaded. Local edits remain browser-only for this test stage.</span>
+    <span id="ui-banner-message">2026-27 timetable is synchronized with the Faculty Dashboard from All Faculty Summaries. Both pages use the same live Firestore sessions.</span>
     <button id="auth-setup-btn" style="padding:3px 10px;border:1px solid #9a6700;border-radius:999px;background:#fff8dc;color:#664d03;font-size:10.5px;font-weight:700">Auth Setup</button>
   </div>
 
@@ -130,6 +130,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
             <button class="pill-btn" data-year="1">Year 1</button>
             <button class="pill-btn" data-year="2">Year 2</button>
             <button class="pill-btn" data-year="3">Year 3</button>
+            <button class="pill-btn" data-year="4">Year 4</button>
             <button class="pill-btn active" data-year="all">All Years</button>
           </div>
         </div>
@@ -137,6 +138,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
         <div class="filter-block-row">
           <span class="filter-block-label">Semester</span>
           <div class="btn-row btn-row-left" id="semester-btn-row">
+            <button class="pill-btn" data-semester="spring">Spring</button>
             <button class="pill-btn active" data-semester="fall">Fall</button>
             <button class="pill-btn" data-semester="winter">Winter</button>
           </div>
@@ -168,6 +170,9 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
             <div class="fbar-select-wrap">
               <select class="fbar-select" id="filter-month">
                 <option value="all">All Months</option>
+                <option value="4">May</option>
+                <option value="5">June</option>
+                <option value="6">July</option>
                 <option value="7">August</option>
                 <option value="8">September</option>
                 <option value="9">October</option>
@@ -256,7 +261,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
               <button class="export-btn" id="reset-test-data">Reload Source Data</button>
               <button class="export-btn hidden" id="publish-firestore-schedule">Initialize Live Schedule</button>
             </div>
-            <div class="test-note">Exports contain the Year 1-3 schedule plus detailed Spy Hill lab sessions loaded for this test site.</div>
+            <div class="test-note">Exports contain the synchronized 2026-27 sessions from All Faculty Summaries, including Years 1-4.</div>
           </div>
         </div>
       </div>
@@ -350,6 +355,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
   const UPDATES_KEY = 'ucvm_source_updates_20260826_v1';
   const SESSION_COLLECTION = 'sessions';
   const SESSION_LOG_COLLECTION = 'session_change_log';
+  const SPRING_BASE_MONDAY = new Date(2026, 3, 27);
   const FALL_BASE_MONDAY = new Date(2026, 7, 24);
   const WINTER_BASE_MONDAY = new Date(2027, 0, 4);
   const WEEK_COUNT = 17;
@@ -463,7 +469,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
     brand: 'UCVM',
     pageTitle: 'Timetable',
     bannerLabel: '2026-2027 SOURCE SCHEDULE TEST',
-    bannerMessage: 'Year 1-3 class schedules and the Aug 26 Spy Hill lab schedule are loaded. Local edits remain browser-only for this test stage.',
+    bannerMessage: '2026-27 timetable is synchronized with the Faculty Dashboard from All Faculty Summaries. Both pages use the same live Firestore sessions.',
     updatesTitle: 'Latest Updates',
     updatesSubtitle: 'Schedule source / local changes',
     exportTitle: 'Data Export',
@@ -678,7 +684,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
     })
   ];
 
-  let sessions = loadSessions();
+  let sessions = [];
   let updates = loadUpdates();
   let sessionUnsubscribe = null;
   let scheduleSource = 'bundled';
@@ -705,15 +711,17 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
   function ymd(d) { return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
   function addDays(date, days) { const d = new Date(date); d.setDate(d.getDate() + days); return d; }
   function weekStart(week, semester = selectedSemester) {
-    const base = semester === 'winter' ? WINTER_BASE_MONDAY : FALL_BASE_MONDAY;
+    const base = semester === 'spring' ? SPRING_BASE_MONDAY : (semester === 'winter' ? WINTER_BASE_MONDAY : FALL_BASE_MONDAY);
     return addDays(base, (week - 1) * 7);
   }
   function academicPositionForDate(d) {
-    const fallStart = FALL_BASE_MONDAY, fallEnd = addDays(FALL_BASE_MONDAY, WEEK_COUNT * 7 - 1);
+    const springStart = SPRING_BASE_MONDAY, springEnd = addDays(FALL_BASE_MONDAY, -1);
+    const fallStart = FALL_BASE_MONDAY, fallEnd = addDays(WINTER_BASE_MONDAY, -1);
     const winterStart = WINTER_BASE_MONDAY, winterEnd = addDays(WINTER_BASE_MONDAY, WEEK_COUNT * 7 - 1);
+    if (d >= springStart && d <= springEnd) return { semester:'spring', week:Math.floor((d-springStart)/86400000/7)+1 };
     if (d >= fallStart && d <= fallEnd) return { semester:'fall', week:Math.floor((d-fallStart)/86400000/7)+1 };
     if (d >= winterStart && d <= winterEnd) return { semester:'winter', week:Math.floor((d-winterStart)/86400000/7)+1 };
-    return { semester:'fall', week:1 };
+    return d < fallStart ? {semester:'spring',week:1} : {semester:'winter',week:1};
   }
   function setInitialAcademicPeriod() {
     const p = academicPositionForDate(new Date());
@@ -776,8 +784,8 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
     const publish = $('publish-firestore-schedule');
     if (publish) {
       publish.classList.toggle('hidden', currentUser?.role !== 'admin');
-      publish.textContent = live ? 'Live Schedule Ready' : 'Initialize Live Schedule';
-      publish.disabled = live;
+      publish.textContent = live ? 'Synced Schedule Ready' : 'Sync from Faculty Dashboard';
+      publish.disabled = false;
     }
   }
 
@@ -785,62 +793,22 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
     if (!db || !currentUser) return;
     if (sessionUnsubscribe) { try { sessionUnsubscribe(); } catch (_) {} }
     sessionUnsubscribe = db.collection(SESSION_COLLECTION).onSnapshot(snapshot => {
-      if (snapshot.empty) {
-        sessions = seedSessions();
-        scheduleSource = 'bundled';
-      } else {
-        sessions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        scheduleSource = 'firestore';
-      }
+      sessions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      scheduleSource = sessions.length ? 'firestore' : 'firestore-empty';
+      populateCourseFilter();
       updateScheduleSourceUI();
       render();
     }, err => {
       console.error('[sessions subscription]', err);
-      sessions = seedSessions();
-      scheduleSource = 'bundled';
-      updateScheduleSourceUI();
-      toast('Live schedule could not be read. Using the bundled source schedule.', true);
-      render();
+      sessions = []; scheduleSource = 'firestore-error';
+      populateCourseFilter(); updateScheduleSourceUI();
+      toast('The synchronized Firestore timetable could not be read.', true); render();
     });
   }
 
   async function initializeLiveSchedule() {
-    if (currentUser?.role !== 'admin' || !db) { toast('Admin permission is required.', true); return; }
-    const sourceRows = seedSessions();
-    if (!sourceRows.length) { toast('No bundled schedule data is available.', true); return; }
-    try {
-      const existing = await db.collection(SESSION_COLLECTION).limit(1).get();
-      if (!existing.empty) {
-        toast('The Firestore sessions collection is already initialized.', true);
-        return;
-      }
-      if (!confirm(`Initialize Firestore with ${sourceRows.length} audited 2026-2027 schedule sessions? This is a one-time setup so timetable edits and the DOE dashboard can update in real time.`)) return;
-      const chunks=[]; for(let i=0;i<sourceRows.length;i+=350) chunks.push(sourceRows.slice(i,i+350));
-      let written=0;
-      for (const chunk of chunks) {
-        const batch=db.batch();
-        for (const s of chunk) {
-          const id=String(s.id||'').trim(); if(!id) continue;
-          batch.set(db.collection(SESSION_COLLECTION).doc(id), {
-            ...firestoreSafeSession(s),
-            source: 'Audited Year 1-3 + Spy Hill Lab Schedule 2026-2027',
-            updatedBy: currentUser.uid,
-            updatedByName: currentUser.name,
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-          });
-          written++;
-        }
-        await batch.commit();
-      }
-      await db.collection(SESSION_LOG_COLLECTION).add({
-        action:'initialize_schedule', recordCount:written, changedBy:currentUser.uid, changedByName:currentUser.name,
-        changedAt:firebase.firestore.FieldValue.serverTimestamp()
-      });
-      toast(`Live schedule initialized with ${written} sessions.`);
-    } catch (err) {
-      console.error('[initialize live schedule]', err);
-      toast(`Could not initialize live schedule: ${err.message||err}`, true);
-    }
+    if (currentUser?.role !== 'admin') { toast('Admin permission is required.', true); return; }
+    if (confirm('The timetable is now sourced only from 2026-09-03 - All Faculty Summaries.xlsx. Open the Faculty Dashboard to replace and synchronize the source data?')) location.href='faculty-admin.html';
   }
 
   function init() {
@@ -855,13 +823,12 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
     initFirebaseAuth();
   }
 
+  function courseCodes() { return [...new Set([...COURSES.map(c=>String(c.code)), ...sessions.map(x=>String(x.course||'')).filter(Boolean)])].sort((a,b)=>a.localeCompare(b,undefined,{numeric:true})); }
   function populateCourseFilter() {
-    const select = $('filter-course');
-    COURSES.forEach(c => {
-      const opt = document.createElement('option');
-      opt.value = c.code; opt.textContent = c.code;
-      select.appendChild(opt);
-    });
+    const select = $('filter-course'), old=select.value;
+    select.innerHTML='<option value="all">All Courses</option>';
+    courseCodes().forEach(code => { const opt=document.createElement('option'); opt.value=code; opt.textContent=code; select.appendChild(opt); });
+    if ([...select.options].some(o=>o.value===old)) select.value=old;
   }
 
   function renderWeekControls() {
@@ -905,7 +872,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
     ['search-input','filter-course','filter-type'].forEach(id => $(id).addEventListener(id === 'search-input' ? 'input' : 'change', render));
     $('filter-month').addEventListener('change', e => {
       if (e.target.value !== 'all') {
-        selectedSemester = Number(e.target.value) >= 7 ? 'fall' : 'winter';
+        { const m=Number(e.target.value); selectedSemester = m>=7 ? 'fall' : (m<=3 ? 'winter' : 'spring'); }
         document.querySelectorAll('[data-semester]').forEach(x => x.classList.toggle('active', x.dataset.semester === selectedSemester));
         renderWeekControls();
       }
@@ -995,7 +962,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
 
   function renderWeek() {
     const start = weekStart(selectedWeek, selectedSemester); const end = addDays(start, 4);
-    $('cal-label').textContent = `${selectedSemester === 'winter' ? 'Winter' : 'Fall'} Week ${selectedWeek} - ${formatDate(start)} to ${formatDate(end)}, ${end.getFullYear()}`;
+    $('cal-label').textContent = `${selectedSemester === 'winter' ? 'Winter' : (selectedSemester === 'spring' ? 'Spring' : 'Fall')} Week ${selectedWeek} - ${formatDate(start)} to ${formatDate(end)}, ${end.getFullYear()}`;
     const data = filteredSessions().filter(s => s.week === selectedWeek);
     const DAY_START=450, DAY_END=1020, SPAN=DAY_END-DAY_START; // 7:30am-5:00pm
     let html = '<div class="tg-wrap"><div class="tg-corner"></div>';
@@ -1039,7 +1006,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
     const wstart = weekStart(selectedWeek, selectedSemester);
     const monthChoice = $('filter-month').value;
     const month = monthChoice === 'all' ? wstart.getMonth() : Number(monthChoice);
-    const year = month >= 7 ? 2026 : 2027;
+    const year = month >= 4 ? 2026 : 2027;
     const first = new Date(year, month, 1); const last = new Date(year, month + 1, 0);
     $('cal-label').textContent = first.toLocaleDateString('en-CA', { month: 'long', year: 'numeric' });
     let monday = new Date(first);
@@ -1054,7 +1021,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
         const cell = addDays(cursor, i); const dateStr = ymd(cell);
         const events = data.filter(s => s.date === dateStr).slice(0, 4);
         html += `<div class="cal-cell"><div class="cal-date-num">${cell.getDate()}</div><div class="cal-events">`;
-        events.forEach(s => html += `<div class="cal-event ${colorsOn ? sessionTypeClass(s.type) : 'colors-off'}" data-session-id="${escapeHtml(s.id)}"><div class="cal-event-l1">${escapeHtml(s.course)} ${escapeHtml(s.type)}</div><div class="cal-event-l2">${escapeHtml(s.start)} ${escapeHtml(s.topic)}</div></div>`);
+        events.forEach(s => html += `<div class="cal-event ${colorsOn ? sessionTypeClass(s.type) : 'colors-off'}" data-session-id="${escapeHtml(s.id)}"><div class="cal-event-l1">${escapeHtml(s.course)} ${escapeHtml(s.type)}</div><div class="cal-event-l2">${s.timeUnknown?'Time not specified':escapeHtml(s.start)} ${escapeHtml(s.topic)}</div></div>`);
         html += '</div></div>';
       }
       cursor = addDays(cursor, 7);
@@ -1083,10 +1050,10 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
       <div class="modal-header"><div class="modal-title">${escapeHtml(s.course)} - ${escapeHtml(s.topic)}</div><div class="modal-subtitle">${escapeHtml(s.type)} | ${formatLongDate(parseYmd(s.date))}</div></div>
       <div class="modal-body">
         <div class="form-grid">
-          ${detailField('Time', `${s.start} - ${s.end}`)}${detailField('Room', s.room)}${detailField('Instructor', s.instructor)}${detailField('Year', `Year ${s.year}`)}
+          ${detailField('Time', s.timeUnknown ? 'Time not specified in source workbook' : `${s.start} - ${s.end}`)}${detailField('Room', s.room)}${detailField('Instructor', s.instructor)}${detailField('Year', `Year ${s.year}`)}
         </div>
         ${labDetails}
-        <div class="login-cheatsheet"><strong>Schedule source:</strong> ${scheduleSource === 'firestore' ? 'Live Firestore sessions — edits update the Faculty DOE dashboard in real time.' : 'Bundled audited Year 1-3 + Spy Hill Lab source schedule (read-only until initialized in Firestore).'}</div>
+        <div class="login-cheatsheet"><strong>Schedule source:</strong> ${scheduleSource === 'firestore' ? 'Synchronized Firestore sessions from All Faculty Summaries — the Faculty Dashboard reads these same sessions.' : 'No synchronized source is loaded. Use Faculty Dashboard → Teaching Summary → Replace & Sync All Faculty Summaries.'}</div>
       </div>
       <div class="modal-footer"><button class="btn btn-secondary" id="detail-close">Close</button>${edit}</div>`);
     $('detail-close').onclick = closeModal;
@@ -1096,6 +1063,13 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
   function detailField(label, value) {
     return `<div class="form-field"><span class="form-label">${escapeHtml(label)}</span><div>${escapeHtml(value)}</div></div>`;
   }
+
+  function splitInstructorNames(v){return String(v||'').split(/[;\n]+/).map(x=>x.trim()).filter(Boolean)}
+  function defaultTeachingRole(type){const t=String(type||'').toUpperCase();if(t==='LEC')return'Lecture';if(t==='SRL')return'SRL';if(t==='LAB')return'Lab Support';return type||'Other'}
+  function doeRateForRole(role){return ({'Lecture':0.30,'SRL':0.30,'Lab Lead':0.21,'Lab Primary':0.21,'Lab Support':0.19,'Lab Secondary':0.19})[role]??null}
+  function blockHours(start,end){const a=timeToMinutes(start),b=timeToMinutes(end);return b>=a?(b-a)/60:0}
+  function reconcileAssignments(existing,namesText,type,start,end,topic){const names=splitInstructorNames(namesText),old=Array.isArray(existing)?existing:[];return names.map((name,i)=>{let prev=old.find(x=>String(x.name||'').toLowerCase()===name.toLowerCase())||old[i]||{};const role=prev.role||defaultTeachingRole(type);const h=Number.isFinite(Number(prev.creditedHours))?Number(prev.creditedHours):blockHours(start,end);const rate=doeRateForRole(role);return {...prev,ucid:prev.ucid||null,name,topic:prev.topic||topic,role,creditedHours:h,doeRate:rate,doeCredit:rate===null?null:Number((h*rate).toFixed(6)),source:'Live timetable edit'}})}
+  function labDetailsFromAssignments(type,assignments,topic){if(String(type).toUpperCase()!=='LAB')return undefined;const map=new Map();for(const a of assignments){const t=a.topic||topic||'Lab';if(!map.has(t))map.set(t,[]);map.get(t).push(a)}return[...map].map(([t,arr])=>({topic:t,instructor:arr.map(a=>`${a.name}${a.role?' ('+a.role+')':''}`).join('; '),room:''}))}
 
   function openSessionForm(existing = null) {
     if (!canEdit()) { toast('Editor permission is required to change sessions.', true); return; }
@@ -1109,8 +1083,8 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
       <form id="session-form">
       <div class="modal-body"><div class="form-grid">
         ${input('date','Date','date',s.date)}
-        ${select('year','Year',[1,2,3],s.year)}
-        ${select('course','Course',COURSES.map(c=>c.code),s.course)}
+        ${select('year','Year',[1,2,3,4],s.year)}
+        ${select('course','Course',courseCodes(),s.course)}
         ${select('type','Type',['LEC','LAB','SRL','Quiz/Midterm','OSCE','Exam'],s.type)}
         ${input('start','Start','time',s.start)}
         ${input('end','End','time',s.end)}
@@ -1126,16 +1100,18 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
       e.preventDefault();
       const form = new FormData(e.target); const date = parseYmd(form.get('date'));
       const pos = academicPositionForDate(date);
+      const namesText=form.get('instructor'), topic=form.get('topic'), type=form.get('type'), start=form.get('start'), end=form.get('end');
+      const assignments=reconcileAssignments(existing?.assignments,namesText,type,start,end,topic);
       const next = {
         id: existing?.id || `S${Date.now()}`,
         date: form.get('date'), week:pos.week, semester:pos.semester, year:Number(form.get('year')),
-        course:form.get('course'), type:form.get('type'), topic:form.get('topic'), instructor:form.get('instructor'), room:form.get('room'),
-        start:form.get('start'), end:form.get('end')
+        course:form.get('course'), courseName:(COURSES.find(c=>String(c.code)===String(form.get('course')))||{}).name||existing?.courseName||'', type, topic, instructor:assignments.map(a=>a.name).join('; '), room:form.get('room'),
+        start, end, assignments, labDetails:labDetailsFromAssignments(type,assignments,topic), sourceSystem:'Synchronized live timetable'
       };
       try {
         const ref=db.collection(SESSION_COLLECTION).doc(next.id);
         const batch=db.batch();
-        batch.set(ref,{...firestoreSafeSession(next),updatedBy:currentUser.uid,updatedByName:currentUser.name,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
+        batch.set(ref,{...firestoreSafeSession(next),updatedBy:currentUser.uid,updatedByName:currentUser.name,updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
         const logRef=db.collection(SESSION_LOG_COLLECTION).doc();
         batch.set(logRef,{action:existing?'update':'create',sessionId:next.id,course:next.course,date:next.date,topic:next.topic,changedBy:currentUser.uid,changedByName:currentUser.name,changedAt:firebase.firestore.FieldValue.serverTimestamp()});
         await batch.commit();
@@ -1458,7 +1434,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
           <strong>Authentication:</strong> Firebase ${escapeHtml(currentUser.provider)} sign-in.<br>
           <strong>Authorization:</strong> Firestore <code>users/${escapeHtml(currentUser.uid)}</code>.<br>
           <strong>Role:</strong> ${escapeHtml(currentUser.role)} &nbsp; <strong>Active:</strong> ${currentUser.active ? 'true' : 'false'}<br>
-          <strong>Timetable sessions:</strong> ${scheduleSource === 'firestore' ? 'Live Firestore schedule — shared across authorized users.' : 'Bundled audited schedule — initialize Firestore for real-time shared edits.'}
+          <strong>Timetable sessions:</strong> ${scheduleSource === 'firestore' ? 'Live Firestore schedule — shared across authorized users.' : 'No synchronized source loaded — import from Faculty Dashboard.'}
         </div>
         <div class="form-hint">My Timetable mapping: <strong>${escapeHtml(currentUser.instructorName)}</strong>.</div>
       </div>
@@ -1497,9 +1473,10 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
   }
 
   function openCourseList() {
+    const rows=courseCodes().map(code=>{const base=COURSES.find(c=>String(c.code)===code);const live=sessions.find(x=>String(x.course)===code);return{code,year:base?.year||live?.year||'',name:base?.name||live?.courseName||''}});
     showModal(`
-      <div class="modal-header"><div class="modal-title">Course List</div><div class="modal-subtitle">Courses present in the 2026-2027 Year 1-3 schedules</div></div>
-      <div class="modal-body"><div class="user-table-wrap"><table class="user-table"><thead><tr><th>Course</th><th>Year</th><th>Name</th></tr></thead><tbody>${COURSES.map(c => `<tr><td><strong>${c.code}</strong></td><td>Year ${c.year}</td><td>${escapeHtml(c.name)}</td></tr>`).join('')}</tbody></table></div></div>
+      <div class="modal-header"><div class="modal-title">Course List</div><div class="modal-subtitle">Courses present in the synchronized 2026-2027 All Faculty Summaries timetable</div></div>
+      <div class="modal-body"><div class="user-table-wrap"><table class="user-table"><thead><tr><th>Course</th><th>Year</th><th>Name</th></tr></thead><tbody>${rows.map(c => `<tr><td><strong>${escapeHtml(c.code)}</strong></td><td>${c.year?'Year '+escapeHtml(c.year):'—'}</td><td>${escapeHtml(c.name||'')}</td></tr>`).join('')}</tbody></table></div></div>
       <div class="modal-footer"><span></span><button class="btn btn-secondary" id="course-close">Close</button></div>`);
     $('course-close').onclick = closeModal;
   }
@@ -1512,10 +1489,7 @@ body.ui-editing .cal-card{outline:2px dashed rgba(100,116,139,.35);outline-offse
     toast('Schedule CSV exported.');
   }
 
-  function resetTestData() {
-    if (scheduleSource === 'firestore') { toast('The live schedule is stored in Firestore. This button does not overwrite live data.', true); return; }
-    sessions = seedSessions(); updates = seedUpdates(); persist(); renderUpdates(); render(); toast('Bundled source schedule reloaded.');
-  }
+  function resetTestData() { toast('Old bundled timetable data is disabled. Use Faculty Dashboard → Teaching Summary → Replace & Sync All Faculty Summaries.', true); }
 
   function showModal(content) {
     const m = $('modal');
