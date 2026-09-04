@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>UCVM Timetable - Firestore Only V9.5</title>
+  <title>UCVM Timetable - Workload Guideline DOE V9.7</title>
   <style>
 :root {
   --bg:#eef0f4; --surface:#fff; --surface-2:#f6f7f9; --surface-3:#eceef2;
@@ -196,7 +196,7 @@ body{font-family:"Segoe UI",Arial,Helvetica,sans-serif;background:var(--bg);colo
   </div>
 
   <div class="test-banner">
-    <strong id="ui-banner-label">2026-2027 TEACHING SCHEDULE · UCALGARY UI V9.6</strong>
+    <strong id="ui-banner-label">2026-2027 TEACHING SCHEDULE · WORKLOAD DOE V9.7</strong>
     <span id="ui-banner-message">2026-27 timetable is synchronized with the Faculty Dashboard from All Faculty Summaries. Both pages use the same live Firestore sessions.</span>
     <button id="auth-setup-btn" style="padding:3px 10px;border:1px solid #9a6700;border-radius:999px;background:#fff8dc;color:#664d03;font-size:10.5px;font-weight:700">Auth Setup</button>
   </div>
@@ -551,7 +551,7 @@ body{font-family:"Segoe UI",Arial,Helvetica,sans-serif;background:var(--bg);colo
     academicYear: '2026-2027',
     brand: 'UCVM',
     pageTitle: 'Teaching Schedule',
-    bannerLabel: '2026-2027 TEACHING SCHEDULE · UCALGARY UI V9.6',
+    bannerLabel: '2026-2027 TEACHING SCHEDULE · WORKLOAD DOE V9.7',
     bannerMessage: '2026-27 timetable is synchronized with the Faculty Dashboard from All Faculty Summaries. Both pages use the same live Firestore sessions.',
     updatesTitle: 'Latest Updates',
     updatesSubtitle: 'Schedule source / local changes',
@@ -1063,7 +1063,7 @@ body{font-family:"Segoe UI",Arial,Helvetica,sans-serif;background:var(--bg);colo
           <label class="form-field"><span class="form-label">Swap out current faculty assignment</span><select class="form-select" id="swap-out-select">${assignments.map((a,i)=>`<option value="${i}" ${i===selected?'selected':''}>${escapeHtml(a.name||'Unassigned')} · ${escapeHtml(a.role||s.type||'')} · ${swapPct(swapAssignmentCredit(a))}</option>`).join('')}</select></label>
           <div class="swap-current-card"><div class="swap-current-title">Current assignment being removed</div><div class="swap-current-line"><span><strong>${escapeHtml(outgoing?.name||'Unknown')}</strong></span><span>Role: <strong>${escapeHtml(outgoing?.role||s.type||'')}</strong></span><span>DOE credit: <strong>${credit===null?'Unrated':swapPct(credit)}</strong></span><span>Current Assigned DOE: <strong>${swapPct(outCurrent)}</strong></span><span>After removal: <strong>${credit===null?'Unrated impact':swapPct(outAfter)}</strong></span></div></div>
           <div class="swap-search-row"><label class="form-field"><span class="form-label">Find replacement faculty</span><input class="form-input" id="swap-search" placeholder="Search name, specialty, teaching area, UCID..."></label></div>
-          <div class="swap-help">Each candidate checks <strong>both AFC and the live timetable for overlapping courses at this exact date/time</strong>. For privacy, AFC only reports <strong>Unavailable</strong>; AFC reasons and dates are not shown here, then shows current live Assigned Teaching DOE and projected Assigned DOE after this block is added. Contract Teaching DOE is shown when it exists in the faculty record. A timetable conflict or AFC absence is flagged as unavailable; uncertain records with an unspecified time are marked Check needed. Administrators may override after an explicit warning. The replacement inherits this assignment's role, credited hours and DOE rate. ${credit===null?'<strong>This activity has no numeric DOE rate in the source, so the projected DOE cannot be calculated.</strong>':''}</div>
+          <div class="swap-help">Each candidate checks <strong>both AFC and the live timetable for overlapping courses at this exact date/time</strong>. For privacy, AFC only reports <strong>Unavailable</strong>; AFC reasons and dates are not shown here. The table then shows current Assigned Teaching DOE and projected Assigned DOE after this block is added. The current value uses the synchronized non-timetable/role source component plus live timetable DOE; detailed HICC/VISC/rotation/trainee policy breakdown is available in Faculty Dashboard. Contract Teaching DOE is shown when it exists in the faculty record. A timetable conflict or AFC absence is flagged as unavailable; uncertain records with an unspecified time are marked Check needed. Administrators may override after an explicit warning. The replacement inherits this assignment's role, credited hours and DOE rate. ${credit===null?'<strong>This activity has no numeric DOE rate in the source, so the projected DOE cannot be calculated.</strong>':''}</div>
           <div class="swap-table-wrap"><table class="swap-table"><thead><tr><th>Faculty</th><th>Availability</th><th>Contract Teaching DOE</th><th>Current Assigned DOE</th><th>Projected After Swap</th><th>Remaining / Over</th><th>DOE Status</th><th></th></tr></thead><tbody id="swap-candidate-body"></tbody></table></div>
         </div>
         <div class="modal-footer"><span class="form-hint">Swap is written to Firestore and logged in session_change_log.</span><button class="btn btn-secondary" id="swap-cancel">Cancel</button></div>`);
@@ -1745,9 +1745,9 @@ body{font-family:"Segoe UI",Arial,Helvetica,sans-serif;background:var(--bg);colo
       <form id="auth-setup-form"><div class="modal-body">
         <div class="login-cheatsheet">
           <strong>Firebase test project:</strong> Tester Teaching (<code>tester-teaching</code>)<br><br>
-          <strong>V9.6 UCalgary UI + Firestore-only authorization + synchronized admin SWAP + AFC + timetable availability:</strong><br>
+          <strong>V9.7 UCalgary UI + synchronized workload DOE + Firestore-only authorization + admin SWAP + AFC + timetable availability:</strong><br>
           1. User signs in with Email/Password or Phone.<br>
-          2. V9.6 reads <code>users/{Firebase UID}</code> from Firestore; after authorization, the timetable loads exclusively from <code>sessions</code>. Admin users also load the faculty directory, Away from Campus records, live timetable conflicts, SWAP tools and instructor selection.<br>
+          2. V9.7 reads <code>users/{Firebase UID}</code> from Firestore; after authorization, the timetable loads exclusively from <code>sessions</code>. Admin users also load the faculty directory, Away from Campus records, live timetable conflicts, SWAP tools and instructor selection.<br>
           3. <code>active: true</code> is required.<br>
           4. <code>role: "viewer"</code> = view only; <code>role: "editor"</code> = view + add/edit/delete.<br><br>
           Timetable reads and admin edits are Firestore-only. No Year 1/2/3 bundled schedule files are loaded by this page.
@@ -1816,7 +1816,7 @@ body{font-family:"Segoe UI",Arial,Helvetica,sans-serif;background:var(--bg);colo
   function openUserManager() {
     if (currentUser?.role !== 'admin') return;
     showModal(`
-      <div class="modal-header"><div class="modal-title">Role Management</div><div class="modal-subtitle">V9.6 keeps user-role management unchanged. The timetable is Firestore-only. Open a timetable block to access SWAP Faculty; admin instructor selection checks both AFC and overlapping courses in the live timetable.</div></div>
+      <div class="modal-header"><div class="modal-title">Role Management</div><div class="modal-subtitle">V9.7 keeps user-role management unchanged. The timetable is Firestore-only. Open a timetable block to access SWAP Faculty; admin instructor selection checks both AFC and overlapping courses in the live timetable.</div></div>
       <div class="modal-body">
         <div class="login-cheatsheet">Manage roles in <strong>Firebase Console &gt; Firestore &gt; users</strong>.<br><br>Each document ID is the Firebase Authentication UID. Use <code>active: true</code> and role <code>viewer</code>, <code>editor</code>, or <code>admin</code>.</div>
       </div><div class="modal-footer"><span></span><button class="btn btn-secondary" id="users-close">Close</button></div>`);
@@ -1840,7 +1840,7 @@ body{font-family:"Segoe UI",Arial,Helvetica,sans-serif;background:var(--bg);colo
     toast('Schedule CSV exported.');
   }
 
-  function resetTestData() { toast('There is no bundled timetable in V9.5. Use Faculty Dashboard → Teaching Summary → Replace & Sync All Faculty Summaries.', true); }
+  function resetTestData() { toast('There is no bundled timetable in V9.7. Use Faculty Dashboard → Teaching Summary → Replace & Sync All Faculty Summaries.', true); }
 
   function showModal(content) {
     const m = $('modal');
