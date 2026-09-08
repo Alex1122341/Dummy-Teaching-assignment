@@ -3,24 +3,64 @@ service cloud.firestore {
  match /databases/{database}/documents {
   function signedIn(){return request.auth != null;}
   function profile(){return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;}
-  function ready(){return signedIn() && profile().active == true && profile().role in ['admin','editor','viewer','adfa_general','adfa_regular','hicc','visc','faculty'] && profile().get('mustChangePassword',false) == false && request.auth.token.auth_time >= profile().get('validAfterSeconds',0);}
+  function ready(){return signedIn() && profile().active == true && profile().role in ['admin','editor','viewer','adfa_general','adfa_regular','hicc','visc','faculty'] && profile().get('mustChangePassword',false) == false;}
   function admin(){return ready() && profile().role in ['admin','adfa_general','adfa_regular'];}
   function general(){return ready() && profile().role == 'adfa_general';}
-  match /users/{uid} {allow get: if signedIn() && (request.auth.uid == uid || general()); allow list: if general(); allow write: if false;}
-  match /faculty_groups/{id} {allow read: if ready() && (admin() || request.auth.uid in resource.data.memberUids); allow write: if false;}
+  function hicc(){return ready() && profile().role == 'hicc';}
+  function explicitRole(r){return r in ['adfa_general','adfa_regular','hicc','visc','faculty'];}
+  function facultyRole(r){return r in ['hicc','visc','faculty'];}
+  function validFacultyLink(d){return !facultyRole(d.role) || (d.facultyId is string && d.facultyId.size() > 0 && exists(/databases/$(database)/documents/faculty/$(d.facultyId)));}
+  function selfPasswordCompletion(uid){return signedIn() && request.auth.uid == uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['mustChangePassword','passwordChangedAt','updatedAt']) && request.resource.data.mustChangePassword == false && request.resource.data.passwordChangedAt == request.time && request.resource.data.updatedAt == request.time;}
+  function generalUserCreate(){return general() && explicitRole(request.resource.data.role) && validFacultyLink(request.resource.data) && request.resource.data.active is bool && request.resource.data.updatedBy == request.auth.uid && request.resource.data.updatedAt == request.time && request.resource.data.createdAt == request.time && request.resource.data.keys().hasOnly(['name','email','role','facultyId','active','mustChangePassword','updatedBy','updatedByName','updatedAt','createdAt']);}
+  function generalUserUpdate(uid){return general() && explicitRole(request.resource.data.role) && validFacultyLink(request.resource.data) && request.resource.data.active is bool && request.resource.data.updatedBy == request.auth.uid && request.resource.data.updatedAt == request.time && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name','email','role','facultyId','active','mustChangePassword','updatedBy','updatedByName','updatedAt']) && (uid != request.auth.uid || (request.resource.data.role == 'adfa_general' && request.resource.data.active == true));}
+  function validGroup(d){return d.name is string && d.ownerUid is string && d.courseIds is list && d.memberUids is list && d.ownerUid in d.memberUids && get(/databases/$(database)/documents/users/$(d.ownerUid)).data.role == 'hicc' && get(/databases/$(database)/documents/users/$(d.ownerUid)).data.active == true;}
+  function generalGroupWrite(){return general() && validGroup(request.resource.data) && request.resource.data.updatedBy == request.auth.uid && request.resource.data.updatedAt == request.time;}
+  function hiccMemberUpdate(){return hicc() && resource.data.ownerUid == request.auth.uid && request.resource.data.ownerUid == resource.data.ownerUid && request.resource.data.ownerUid in request.resource.data.memberUids && request.resource.data.updatedBy == request.auth.uid && request.resource.data.updatedAt == request.time && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberUids','updatedBy','updatedByName','updatedAt']);}
+
+  match /users/{uid} {
+   allow get: if signedIn() && (request.auth.uid == uid || general() || (hicc() && facultyRole(resource.data.role)));
+   allow list: if general() || (hicc() && facultyRole(resource.data.role));
+   allow create: if generalUserCreate();
+   allow update: if generalUserUpdate(uid) || selfPasswordCompletion(uid);
+   allow delete: if false;
+  }
+  match /faculty_groups/{id} {
+   allow read: if ready() && (admin() || request.auth.uid == resource.data.ownerUid || request.auth.uid in resource.data.memberUids);
+   allow create: if generalGroupWrite() && request.resource.data.createdAt == request.time;
+   allow update: if generalGroupWrite() || hiccMemberUpdate();
+   allow delete: if general();
+  }
   match /sessions/{id} {
    allow read: if ready();
-   allow create: if admin() && request.resource.data.updatedBy == request.auth.uid && !('auditEventId' in request.resource.data);
-   allow update: if admin() && request.resource.data.updatedBy == request.auth.uid && (request.resource.data.get('auditEventId',null) == null || request.resource.data.get('auditEventId',null) == resource.data.get('auditEventId',null));
+   allow create: if admin() && request.resource.data.updatedBy == request.auth.uid;
+   allow update: if admin() && request.resource.data.updatedBy == request.auth.uid;
    allow delete: if admin();
   }
-  match /faculty/{id} {allow read: if admin(); allow create,update: if admin() && request.resource.data.updatedBy == request.auth.uid; allow delete: if admin();}
+  match /faculty/{id} {
+   allow read: if admin();
+   allow create,update: if admin() && request.resource.data.updatedBy == request.auth.uid;
+   allow delete: if admin();
+  }
   match /settings/{id} {allow read,write: if admin();}
+  match /session_change_log/{id} {
+   allow read: if ready();
+   allow create: if admin() && request.resource.data.changedBy == request.auth.uid && request.resource.data.changedAt == request.time;
+   allow update: if admin() && resource.data.changedBy == request.auth.uid && request.resource.data.changedBy == resource.data.changedBy && request.resource.data.changedAt == resource.data.changedAt && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['changes','changedByEmail','changedByName']);
+   allow delete: if false;
+  }
+  match /faculty_change_log/{id} {
+   allow read: if admin();
+   allow create: if admin() && request.resource.data.changedBy == request.auth.uid && request.resource.data.changedAt == request.time;
+   allow update: if admin() && resource.data.changedBy == request.auth.uid && request.resource.data.changedBy == resource.data.changedBy && request.resource.data.changedAt == resource.data.changedAt && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['changes','facultyName','changedByEmail','changedByName']);
+   allow delete: if false;
+  }
+  match /account_audit/{id} {
+   allow read: if general();
+   allow create: if ready() && request.resource.data.changedBy == request.auth.uid && request.resource.data.changedAt == request.time && (general() || (hicc() && request.resource.data.action == 'group_members_updated' && get(/databases/$(database)/documents/faculty_groups/$(request.resource.data.groupId)).data.ownerUid == request.auth.uid));
+   allow update,delete: if false;
+  }
+  // Kept read-only for any historical server-generated records from a future Blaze deployment.
   match /audit_events/{id} {allow read: if ready(); allow write: if false;}
-  match /account_audit/{id} {allow read: if general(); allow write: if false;}
-  // Existing clients retain their legacy summaries; authoritative history is server-written above.
-  match /session_change_log/{id} {allow read: if ready(); allow create: if admin() && request.resource.data.changedBy == request.auth.uid && request.resource.data.changedAt == request.time;}
-  match /faculty_change_log/{id} {allow read: if admin(); allow create: if admin() && request.resource.data.changedBy == request.auth.uid && request.resource.data.changedAt == request.time;}
   match /{document=**} {allow read,write: if false;}
  }
 }
