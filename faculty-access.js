@@ -38,7 +38,7 @@ window.UCVM=(()=>{
    try{
     const q=await firebase.firestore().collection('faculty').where('email','==',email).limit(2).get();
     if(q.empty)continue;
-    const d=q.docs[0],f=d.data()||{},name=String(f.preferredFullName||f.hrFullName||f.name||p.instructor||p.name||'').trim();
+    const d=q.docs[0],f=d.data()||{},raw=String(f.preferredFullName||f.hrFullName||f.name||'').trim(),comma=raw.match(/^([^,]+),\s*(.+)$/),firstLast=String(f.hrFirstLast||f.teachingAssignmentName||((f.firstName&&f.lastName)?`${f.firstName} ${f.lastName}`:'')||(comma?`${comma[2]} ${comma[1]}`:'')||raw||p.instructor||p.name||'').trim(),name=firstLast;
     if(!p.facultyId)p.facultyId=d.id||f.ucid||'';
     if(name)p.instructor=name;
     p.facultyDirectoryMatch={id:d.id,email,name};
