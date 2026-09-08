@@ -8,6 +8,28 @@ window.UCVM=(()=>{
  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  function installWeekTimeAlignmentFix(){if(document.getElementById('ucvm-week-time-alignment-fix'))return;const style=document.createElement('style');style.id='ucvm-week-time-alignment-fix';style.textContent='.tg-track{top:0!important;bottom:0!important}.tg-block{position:absolute!important}';document.head.appendChild(style)}
  installWeekTimeAlignmentFix();
+ function installStableWeekLanes(){
+  const keyFor=b=>(b.querySelector('.tg-block-l1')?.textContent||b.dataset.sessionId||'').trim().toLowerCase();
+  const alignColumn=col=>{
+   const items=[...col.querySelectorAll('.tg-block')].map(block=>{const start=parseFloat(block.style.top),height=parseFloat(block.style.height);return{block,key:keyFor(block),start,end:start+height,lane:0}}).filter(x=>Number.isFinite(x.start)&&Number.isFinite(x.end)).sort((a,b)=>a.start-b.start||a.end-b.end);
+   if(!items.length)return;
+   const preferred=new Map();let group=[],groupMaxEnd=-Infinity;
+   const flush=()=>{
+    if(!group.length)return;
+    if(group.length===1){const x=group[0];x.block.style.left='2px';x.block.style.right='auto';x.block.style.width='calc(100% - 4px)';group=[];groupMaxEnd=-Infinity;return}
+    const laneEnds=[];
+    group.forEach(x=>{let lane=-1,p=preferred.get(x.key);if(Number.isInteger(p)&&(laneEnds[p]??-Infinity)<=x.start+0.0001)lane=p;if(lane<0)lane=laneEnds.findIndex(end=>end<=x.start+0.0001);if(lane<0)lane=laneEnds.length;laneEnds[lane]=x.end;x.lane=lane;if(!preferred.has(x.key))preferred.set(x.key,lane)});
+    const laneCount=Math.max(1,laneEnds.length),laneWidth=100/laneCount;
+    group.forEach(x=>{x.block.style.left=`calc(${x.lane*laneWidth}% + 2px)`;x.block.style.right='auto';x.block.style.width=`calc(${laneWidth}% - 4px)`});
+    group=[];groupMaxEnd=-Infinity;
+   };
+   items.forEach(x=>{if(group.length&&x.start>=groupMaxEnd-0.0001)flush();group.push(x);groupMaxEnd=Math.max(groupMaxEnd,x.end)});flush();
+  };
+  let queued=false;const align=()=>document.querySelectorAll('.tg-day-col').forEach(alignColumn);const queue=()=>{if(queued)return;queued=true;requestAnimationFrame(()=>{queued=false;align()})};
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',queue,{once:true});else queue();
+  new MutationObserver(m=>{if(m.some(x=>[...x.addedNodes].some(n=>n.nodeType===1&&(n.matches?.('.tg-day-col,.tg-block')||n.querySelector?.('.tg-day-col,.tg-block')))))queue()}).observe(document.documentElement,{childList:true,subtree:true});
+ }
+ installStableWeekLanes();
  function init(){if(!firebase.apps.length)firebase.initializeApp(config);return {auth:firebase.auth(),db:firebase.firestore()};}
  async function ready(user,p){if(!p?.active)throw Error('This account is inactive.');if(p.mustChangePassword){location.replace('password.html');return false}return true}
  function watch(user,p){let initial=true;return firebase.firestore().doc(`users/${user.uid}`).onSnapshot(s=>{const n=s.data();if(initial){initial=false;return}if(!n||['role','active','mustChangePassword'].some(k=>n[k]!==p[k]))location.reload()})}
