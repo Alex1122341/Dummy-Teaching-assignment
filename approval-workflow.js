@@ -10,6 +10,7 @@
  const REQUESTS='change_requests', SESSIONS='sessions', LOGS='session_change_log';
  let me=null,user=null,role='',sessions=new Map(),people=[],peopleByUid=new Map(),groups=[],myGroups=[],hiccScope=new Set();
  let hiccMode=false,requests=[],requestUnsub=null,sessionUnsub=null,groupUnsub=null,peopleUnsub=null,renderQueued=false;
+ let approvalFaculty=[],approvalFacultyById=new Map(),approvalFacultyLoaded=false;
 
  const css=document.createElement('style');
  css.id='ucvm-approval-workflow-style';
@@ -17,7 +18,7 @@
  .workflow-btn{padding:5px 12px;font-size:12px;font-weight:650;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);color:var(--text-2);white-space:nowrap}
  .workflow-btn:hover,.workflow-btn.active{border-color:var(--uc-red,#d6001c);color:var(--uc-red,#d6001c)}
  .workflow-count{display:inline-flex;min-width:18px;height:18px;padding:0 5px;align-items:center;justify-content:center;margin-left:4px;border-radius:999px;background:var(--uc-red,#d6001c);color:#fff;font-size:9px;font-weight:800}
- .workflow-modal-box{width:min(980px,96vw)!important;max-height:90vh;overflow:auto}
+ .workflow-modal-box{width:min(1080px,96vw)!important;max-height:90vh;overflow:auto}
  .workflow-note{font-size:11px;color:var(--text-3);line-height:1.45;margin:6px 0 12px}
  .workflow-card{border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;margin:8px 0;background:var(--surface)}
  .workflow-card.pending{border-left:4px solid #b7791f}.workflow-card.approved{border-left:4px solid #287a3f}.workflow-card.rejected{border-left:4px solid #b91c1c}
@@ -26,7 +27,14 @@
  .workflow-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.workflow-pill{display:inline-block;padding:2px 6px;border:1px solid var(--border);border-radius:999px;font-size:9.5px;font-weight:750}
  .workflow-hidden-by-hicc{display:none!important}.workflow-session-pending{outline:2px dashed #b7791f;outline-offset:-2px}
  .workflow-approval-change{margin-top:6px;font-size:11px}.workflow-approval-change strong{display:inline-block;min-width:90px}
- @media(max-width:680px){.workflow-grid{grid-template-columns:1fr}}
+ .workflow-impact{margin-top:10px;padding:10px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface-2)}
+ .workflow-impact-title{font-size:10px;font-weight:850;text-transform:uppercase;letter-spacing:.05em;color:var(--text-3);margin-bottom:7px}
+ .workflow-impact-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .workflow-person{border:1px solid var(--border);border-radius:var(--radius);padding:8px;background:var(--surface)}
+ .workflow-person-name{font-weight:800;margin-bottom:4px}.workflow-metric{font-size:10.5px;line-height:1.5;color:var(--text-2)}
+ .workflow-check{margin-top:5px;padding:5px 7px;border-radius:4px;font-size:10px;font-weight:700}.workflow-check.ok{background:#ecfdf3;color:#166534;border:1px solid #a7d7b5}.workflow-check.warn{background:#fff1f2;color:#b91c1c;border:1px solid #f3b4ba}.workflow-check.unknown{background:var(--surface-3);color:var(--text-3);border:1px solid var(--border)}
+ .workflow-credit{margin-bottom:7px;font-size:11px;font-weight:750}.workflow-edit-impact{display:flex;flex-direction:column;gap:6px}
+ @media(max-width:680px){.workflow-grid,.workflow-impact-grid{grid-template-columns:1fr}}
  `;
  document.head.appendChild(css);
 
@@ -40,6 +48,44 @@
  const assignedArray=s=>Array.isArray(s?.assignments)&&s.assignments.length?s.assignments.map(a=>({...a})):(String(s?.instructor||'').split(';').map(x=>x.trim()).filter(Boolean).map(name=>({name,ucid:'',role:s?.type||''})));
  const sameVal=(a,b)=>JSON.stringify(a??null)===JSON.stringify(b??null);
  const ymd=v=>String(v||'').slice(0,10);
+ const num=v=>{if(v===undefined||v===null||v==='')return null;const n=Number(v);return Number.isFinite(n)?n:null};
+ const fmtDoe=v=>v===null||v===undefined?'—':`${Number(v).toFixed(2)}%`;
+
+ function facultyName(f){return String(f?.preferredFullName||f?.hrFirstLast||f?.hrFullName||f?.teachingAssignmentName||f?.facultySummary2026_27?.displayName||f?.__id||'Unknown faculty')}
+ function facultyAliases(f){const out=new Set();[facultyName(f),f?.preferredFullName,f?.hrFirstLast,f?.hrFullName,f?.teachingAssignmentName,f?.facultySummary2026_27?.displayName].forEach(v=>{const k=norm(v);if(k)out.add(k)});if(f?.firstName&&f?.lastName)out.add(norm(`${f.firstName} ${f.lastName}`));const raw=String(f?.hrFullName||'').match(/^([^,]+),\s*(.+)$/);if(raw)out.add(norm(`${raw[2]} ${raw[1]}`));return out}
+ function facultySummary(f){const x=f?.facultySummary2026_27;return x&&typeof x==='object'&&!Array.isArray(x)?x:null}
+ function contractTeachingDoe(f){return [f?.doe?.teaching,f?.doeTeaching,f?.teachingDOE,f?.contractTeachingDOE].map(num).find(v=>v!==null)??null}
+ function assignmentCredit(a){const c=num(a?.doeCredit);if(c!==null)return c;const r=num(a?.doeRate),h=num(a?.creditedHours);return r!==null&&h!==null?Number((r*h).toFixed(6)):null}
+ function resolveFaculty(ref){const id=String(ref?.facultyId||ref?.ucid||'').trim();if(id&&approvalFacultyById.has(id))return approvalFacultyById.get(id);const key=norm(ref?.name||'');if(!key)return null;return approvalFaculty.find(f=>facultyAliases(f).has(key))||null}
+ async function ensureApprovalFaculty(){
+  if(!isApprover()||approvalFacultyLoaded)return;
+  const q=await db.collection('faculty').get();approvalFaculty=q.docs.map(d=>({__id:d.id,...d.data()}));approvalFacultyById=new Map(approvalFaculty.map(f=>[String(f.__id),f]));approvalFacultyLoaded=true;
+ }
+ async function ensureApprovalSessions(){
+  if(sessions.size)return;const q=await db.collection(SESSIONS).get();sessions=new Map(q.docs.map(d=>[d.id,{id:d.id,...d.data()}]));
+ }
+ function buildDoeState(){
+  const state=new Map(),aliases=new Map();
+  for(const f of approvalFaculty){const s=facultySummary(f),fixed=num(s?.sourceNonTimetableTeachingDOE),sourceAssigned=num(s?.assignedTeachingDOE);state.set(String(f.__id),{faculty:f,scheduled:0,fixed,sourceAssigned,contract:contractTeachingDoe(f)});for(const a of facultyAliases(f))if(!aliases.has(a))aliases.set(a,String(f.__id))}
+  for(const sess of sessions.values())for(const a of assignedArray(sess)){let id=String(a?.ucid||'').trim();if(!id)id=aliases.get(norm(a?.name))||'';const row=state.get(id),credit=assignmentCredit(a);if(row&&credit!==null)row.scheduled+=credit}
+  for(const row of state.values())row.current=row.fixed!==null?row.fixed+row.scheduled:(row.sourceAssigned!==null?row.sourceAssigned:null);
+  return state;
+ }
+ function timeMinutes(v){const s=String(v||'').trim();if(!s)return null;let m=s.match(/^(\d{1,2}):(\d{2})(?:\s*([AP]M))?$/i);if(!m)return null;let h=Number(m[1]),min=Number(m[2]);if(m[3]){const ap=m[3].toUpperCase();if(h===12)h=0;if(ap==='PM')h+=12}if(h>23||min>59)return null;return h*60+min}
+ function overlaps(aStart,aEnd,bStart,bEnd){const as=timeMinutes(aStart),ae=timeMinutes(aEnd),bs=timeMinutes(bStart),be=timeMinutes(bEnd);return ![as,ae,bs,be].some(v=>v===null)&&ae>as&&be>bs&&as<be&&bs<ae}
+ function sessionHasFaculty(sess,f){const id=String(f?.__id||''),aliases=facultyAliases(f);return assignedArray(sess).some(a=>(id&&String(a?.ucid||'')===id)||aliases.has(norm(a?.name)))}
+ function timetableCheck(f,date,start,end,excludeId=''){
+  const d=ymd(date),ts=timeMinutes(start),te=timeMinutes(end),sameDay=[...sessions.values()].filter(s=>String(s.id)!==String(excludeId)&&ymd(s.date)===d&&sessionHasFaculty(s,f));
+  if(!d||ts===null||te===null||te<=ts)return{available:null,conflicts:[],possible:sameDay,reason:'time'};
+  const conflicts=[],possible=[];for(const s of sameDay){if(s.timeUnknown||timeMinutes(s.start)===null||timeMinutes(s.end)===null){possible.push(s);continue}if(overlaps(start,end,s.start,s.end))conflicts.push(s)}
+  return{available:conflicts.length?false:(possible.length?null:true),conflicts,possible,reason:conflicts.length?'overlap':(possible.length?'unknown':'clear')};
+ }
+ function afcCheck(f,date){const d=ymd(date),records=Array.isArray(f?.awayFromCampusRecords)?f.awayFromCampusRecords:[];return{available:!records.some(x=>x&&x.startDate&&x.endDate&&String(x.startDate)<=d&&d<=String(x.endDate))}}
+ function availabilityFor(f,date,start,end,excludeId=''){if(!f)return{available:null,afc:{available:null},tt:{available:null,conflicts:[],possible:[],reason:'faculty'}};const afc=afcCheck(f,date),tt=timetableCheck(f,date,start,end,excludeId),bad=afc.available===false||tt.available===false;return{available:bad?false:(tt.available===null?null:true),afc,tt}}
+ function conflictLabel(s){return `${s.course||'Course'} ${s.start||'—'}-${s.end||'—'}${s.topic?` · ${s.topic}`:''}`}
+ function availabilityDetail(av,start,end){const parts=[];if(av.afc?.available===false)parts.push('AFC: Unavailable');if(av.tt?.available===false)parts.push(`Timetable conflict: ${av.tt.conflicts.map(conflictLabel).join('; ')}`);else if(av.tt?.available===true)parts.push(`Timetable clear ${start||'—'}-${end||'—'}`);else parts.push('Timetable check incomplete');if(av.tt?.possible?.length)parts.push(`Time-check needed: ${av.tt.possible.map(conflictLabel).join('; ')}`);return parts.join(' · ')}
+ function availabilityHtml(av,start,end){const cls=av.available===true?'ok':av.available===false?'warn':'unknown',label=av.available===true?'Available / no conflict':av.available===false?'Conflict or unavailable':'Check needed';return `<div class="workflow-check ${cls}">${esc(label)} · ${esc(availabilityDetail(av,start,end))}</div>`}
+ function doeProjectionText(current,projected,contract){let out=`Current assigned DOE: <strong>${fmtDoe(current)}</strong> → Projected: <strong>${fmtDoe(projected)}</strong>`;if(contract!==null){const rem=projected===null?null:contract-projected;out+=` · Contract Teaching DOE: <strong>${fmtDoe(contract)}</strong>`;if(rem!==null)out+=` · ${rem>=0?`${fmtDoe(rem)} remaining`:`${fmtDoe(Math.abs(rem))} over`}` }return out}
 
  function showModal(html){
   const modal=$('modal'); if(!modal)return;
@@ -227,13 +273,41 @@
   if(r.requestType==='faculty_swap')return `<div class="workflow-approval-change"><strong>Faculty swap</strong>${esc(r.fromFaculty?.name||'')} → ${esc(r.toFaculty?.name||'')}</div>`;
   return (r.changes||[]).map(c=>`<div class="workflow-approval-change"><strong>${esc(c.field)}</strong>${esc(c.before)} → ${esc(c.after)}</div>`).join('');
  }
- function requestCard(r,admin=false){const when=r.requestedAt?.toDate?.().toLocaleString('en-CA',{timeZone:'America/Edmonton'})||'Pending timestamp';return `<div class="workflow-card ${esc(r.status||'pending')}"><div class="workflow-card-head"><div><div class="workflow-card-title">${esc(r.course||'')} · ${esc(r.topic||'')}</div><div class="workflow-card-meta">${esc(r.requesterName||r.requesterEmail||'')} · ${esc(UCVM.label(r.requesterRole||''))} · ${esc(when)}</div></div><span class="workflow-pill">${statusLabel(r)}</span></div>${requestDetail(r)}${r.reason?`<div class="workflow-note">Reason: ${esc(r.reason)}</div>`:''}${admin&&r.status==='pending'?`<div class="workflow-actions"><button class="btn btn-primary" data-approve-request="${esc(r.id)}">Approve & apply</button><button class="btn btn-secondary" data-reject-request="${esc(r.id)}">Reject</button></div>`:''}</div>`}
+ function requestCard(r,admin=false){const when=r.requestedAt?.toDate?.().toLocaleString('en-CA',{timeZone:'America/Edmonton'})||'Pending timestamp',impact=admin&&r.status==='pending'?`<div class="workflow-impact" data-approval-impact="${esc(r.id)}"><div class="workflow-impact-title">DOE & schedule checks</div>Checking live DOE and timetable conflicts…</div>`:'';return `<div class="workflow-card ${esc(r.status||'pending')}"><div class="workflow-card-head"><div><div class="workflow-card-title">${esc(r.course||'')} · ${esc(r.topic||'')}</div><div class="workflow-card-meta">${esc(r.requesterName||r.requesterEmail||'')} · ${esc(UCVM.label(r.requesterRole||''))} · ${esc(when)}</div></div><span class="workflow-pill">${statusLabel(r)}</span></div>${requestDetail(r)}${r.reason?`<div class="workflow-note">Reason: ${esc(r.reason)}</div>`:''}${impact}${admin&&r.status==='pending'?`<div class="workflow-actions"><button class="btn btn-primary" data-approve-request="${esc(r.id)}">Approve & apply</button><button class="btn btn-secondary" data-reject-request="${esc(r.id)}">Reject</button></div>`:''}</div>`}
  function openMyRequests(){showModal(`<div class="modal-header"><div class="modal-title">My change requests</div><div class="modal-subtitle">Pending requests do not change the live timetable until ADFA approves.</div></div><div class="modal-body">${requests.map(r=>requestCard(r,false)).join('')||'<p>No requests yet.</p>'}</div><div class="modal-footer"><button class="btn btn-secondary" data-workflow-close>Close</button></div>`)}
- function openApprovalQueue(){const pending=requests.filter(r=>r.status==='pending'),done=requests.filter(r=>r.status!=='pending').slice(0,20);showModal(`<div class="modal-header"><div class="modal-title">ADFA approval queue</div><div class="modal-subtitle">ADFA General or ADFA Regular approval applies the request to the live Firestore timetable.</div></div><div class="modal-body"><h3>Pending (${pending.length})</h3>${pending.map(r=>requestCard(r,true)).join('')||'<p>No pending requests.</p>'}${done.length?`<h3 style="margin-top:18px">Recent decisions</h3>${done.map(r=>requestCard(r,false)).join('')}`:''}</div><div class="modal-footer"><button class="btn btn-secondary" data-workflow-close>Close</button></div>`);document.querySelectorAll('[data-approve-request]').forEach(b=>b.onclick=()=>approveRequest(b.dataset.approveRequest));document.querySelectorAll('[data-reject-request]').forEach(b=>b.onclick=()=>rejectRequest(b.dataset.rejectRequest))}
+
+ function swapImpactHtml(r,current){
+  const arr=assignedArray(current),fromId=String(r.fromFaculty?.facultyId||''),fromName=norm(r.fromFaculty?.name),idx=arr.findIndex(a=>(fromId&&String(a.ucid||'')===fromId)||(fromName&&norm(a.name)===fromName)),out=idx>=0?arr[idx]:null,outF=resolveFaculty(r.fromFaculty),inF=resolveFaculty(r.toFaculty),credit=assignmentCredit(out),state=buildDoeState(),outState=outF?state.get(String(outF.__id)):null,inState=inF?state.get(String(inF.__id)):null,outCurrent=outState?.current??null,inCurrent=inState?.current??null,outProjected=outCurrent!==null&&credit!==null?outCurrent-credit:null,inProjected=inCurrent!==null&&credit!==null?inCurrent+credit:null,outAv=availabilityFor(outF,current.date,current.start,current.end,current.id),inAv=availabilityFor(inF,current.date,current.start,current.end,current.id);
+  return `<div class="workflow-impact-title">DOE & schedule checks</div><div class="workflow-credit">Session DOE credit transferred: ${credit===null?'Unrated / unavailable':fmtDoe(credit)} · ${esc(ymd(current.date))} ${esc(current.start||'—')}–${esc(current.end||'—')}</div><div class="workflow-impact-grid"><div class="workflow-person"><div class="workflow-person-name">Outgoing · ${esc(r.fromFaculty?.name||facultyName(outF))}</div><div class="workflow-metric">${doeProjectionText(outCurrent,outProjected,outState?.contract??contractTeachingDoe(outF))}</div>${availabilityHtml(outAv,current.start,current.end)}</div><div class="workflow-person"><div class="workflow-person-name">Incoming · ${esc(r.toFaculty?.name||facultyName(inF))}</div><div class="workflow-metric">${doeProjectionText(inCurrent,inProjected,inState?.contract??contractTeachingDoe(inF))}</div>${availabilityHtml(inAv,current.start,current.end)}</div></div>`;
+ }
+ function editImpactHtml(r,current){
+  const date=r.patch?.date||current.date,start=r.patch?.start||current.start,end=r.patch?.end||current.end,state=buildDoeState(),rows=assignedArray(current).map(a=>{const f=resolveFaculty({facultyId:a.ucid,name:a.name}),st=f?state.get(String(f.__id)):null,av=availabilityFor(f,date,start,end,current.id),credit=assignmentCredit(a);return `<div class="workflow-person"><div class="workflow-person-name">${esc(a.name||facultyName(f))}</div><div class="workflow-metric">Session DOE: <strong>${credit===null?'Unrated':fmtDoe(credit)}</strong> · Current assigned DOE: <strong>${fmtDoe(st?.current??null)}</strong> · DOE is unchanged by this date/time/topic edit.</div>${availabilityHtml(av,start,end)}</div>`}).join('');
+  return `<div class="workflow-impact-title">DOE & proposed-time conflict checks</div><div class="workflow-credit">Proposed session: ${esc(ymd(date))} ${esc(start||'—')}–${esc(end||'—')}. All currently assigned faculty are checked against their other live timetable sessions.</div><div class="workflow-edit-impact">${rows||'<div class="workflow-check unknown">No assigned faculty were found to check.</div>'}</div>`;
+ }
+ async function hydrateApprovalImpacts(){
+  await Promise.all([ensureApprovalFaculty(),ensureApprovalSessions()]);
+  for(const el of document.querySelectorAll('[data-approval-impact]')){const r=requests.find(x=>x.id===el.dataset.approvalImpact),current=r?sessions.get(r.sessionId):null;if(!r||!current){el.innerHTML='<div class="workflow-impact-title">DOE & schedule checks</div><div class="workflow-check warn">The live session could not be found. Do not approve until reviewed manually.</div>';continue}try{el.innerHTML=r.requestType==='faculty_swap'?swapImpactHtml(r,current):editImpactHtml(r,current)}catch(e){console.error('[approval impact]',e);el.innerHTML=`<div class="workflow-impact-title">DOE & schedule checks</div><div class="workflow-check unknown">Unable to calculate checks: ${esc(e.message)}</div>`}}
+ }
+ async function openApprovalQueue(){
+  const pending=requests.filter(r=>r.status==='pending'),done=requests.filter(r=>r.status!=='pending').slice(0,20);showModal(`<div class="modal-header"><div class="modal-title">ADFA approval queue</div><div class="modal-subtitle">ADFA General or ADFA Regular approval applies the request to the live Firestore timetable. DOE and timetable conflict checks below use the current live data.</div></div><div class="modal-body"><h3>Pending (${pending.length})</h3>${pending.map(r=>requestCard(r,true)).join('')||'<p>No pending requests.</p>'}${done.length?`<h3 style="margin-top:18px">Recent decisions</h3>${done.map(r=>requestCard(r,false)).join('')}`:''}</div><div class="modal-footer"><button class="btn btn-secondary" data-workflow-close>Close</button></div>`);document.querySelectorAll('[data-approve-request]').forEach(b=>b.onclick=()=>approveRequest(b.dataset.approveRequest));document.querySelectorAll('[data-reject-request]').forEach(b=>b.onclick=()=>rejectRequest(b.dataset.rejectRequest));try{await hydrateApprovalImpacts()}catch(e){toast(`DOE/conflict checks could not load: ${e.message}`,true)}
+ }
 
  function validateBase(current,base,fields){for(const f of fields)if(!sameVal(f==='date'?ymd(current[f]):current[f],base?.[f]))return false;return true}
+ function approvalWarnings(r,current){
+  const warnings=[];
+  if(r.requestType==='faculty_swap'){
+    const outF=resolveFaculty(r.fromFaculty),inF=resolveFaculty(r.toFaculty),outAv=availabilityFor(outF,current.date,current.start,current.end,current.id),inAv=availabilityFor(inF,current.date,current.start,current.end,current.id);
+    if(outAv.available!==true)warnings.push(`Outgoing ${r.fromFaculty?.name||facultyName(outF)}: ${availabilityDetail(outAv,current.start,current.end)}`);
+    if(inAv.available!==true)warnings.push(`Incoming ${r.toFaculty?.name||facultyName(inF)}: ${availabilityDetail(inAv,current.start,current.end)}`);
+  }else if(r.requestType==='session_edit'){
+    const date=r.patch?.date||current.date,start=r.patch?.start||current.start,end=r.patch?.end||current.end;
+    for(const a of assignedArray(current)){const f=resolveFaculty({facultyId:a.ucid,name:a.name}),av=availabilityFor(f,date,start,end,current.id);if(av.available!==true)warnings.push(`${a.name||facultyName(f)}: ${availabilityDetail(av,start,end)}`)}
+  }
+  return warnings;
+ }
  async function approveRequest(id){
   if(!isApprover())return;const r=requests.find(x=>x.id===id);if(!r||r.status!=='pending')return;
+  await Promise.all([ensureApprovalFaculty(),ensureApprovalSessions()]);
   const ref=db.doc(`${SESSIONS}/${r.sessionId}`),snap=await ref.get();if(!snap.exists)return toast('The session no longer exists. Reject or review this request manually.',true);const current={id:snap.id,...snap.data()};
   let patch={},log={};
   if(r.requestType==='session_edit'){
@@ -244,7 +318,8 @@
     const arr=assignedArray(current),fromId=String(r.fromFaculty?.facultyId||''),fromName=norm(r.fromFaculty?.name),idx=arr.findIndex(a=>(fromId&&String(a.ucid||'')===fromId)||(fromName&&norm(a.name)===fromName));if(idx<0)return toast('The outgoing instructor is no longer assigned. Approval is blocked.',true);
     const incoming={...(arr[idx]||{}),ucid:String(r.toFaculty?.facultyId||''),name:r.toFaculty?.name||'',category:'Faculty',source:'Approved swap request',swappedFrom:{ucid:String(arr[idx]?.ucid||''),name:arr[idx]?.name||''},swappedAt:new Date().toISOString()};arr[idx]=incoming;patch={assignments:arr,instructor:arr.map(a=>a.name).filter(Boolean).join('; ')};log={action:'swap_faculty',fromFaculty:r.fromFaculty||{},toFaculty:r.toFaculty||{},role:incoming.role||current.type||''};
   }else return;
-  if(!confirm(`Approve and apply this ${r.requestType==='faculty_swap'?'faculty swap':'session change'} to the live timetable?`))return;
+  const warnings=approvalWarnings(r,current),warningText=warnings.length?`\n\nWARNING — availability/conflict checks:\n- ${warnings.join('\n- ')}\n\nYou may override as ADFA, but review these conflicts first.`:'';
+  if(!confirm(`Approve and apply this ${r.requestType==='faculty_swap'?'faculty swap':'session change'} to the live timetable?${warningText}`))return;
   try{
     const batch=db.batch(),reqRef=db.doc(`${REQUESTS}/${id}`),logRef=db.collection(LOGS).doc();batch.set(ref,{...patch,updatedBy:user.uid,updatedByName:me?.name||user.email||'',updatedAt:stamp()},{merge:true});batch.set(logRef,{...log,requestId:id,sessionId:r.sessionId,course:current.course||r.course||'',date:ymd(patch.date||current.date),topic:patch.topic||current.topic||'',changedBy:user.uid,changedByName:me?.name||user.email||'',changedByEmail:user.email||'',changedAt:stamp()});batch.update(reqRef,{status:'approved',approvedBy:user.uid,approvedByName:me?.name||user.email||'',approvedAt:stamp(),appliedAt:stamp()});await batch.commit();toast('Approved and applied to the live timetable.');closeModal();
   }catch(e){console.error(e);toast(e.message,true)}
@@ -254,7 +329,7 @@
  }
 
  auth.onAuthStateChanged(async u=>{
-  user=u;me=null;role='';hiccMode=false;sessions.clear();requests=[];if(sessionUnsub){sessionUnsub();sessionUnsub=null}if(requestUnsub){requestUnsub();requestUnsub=null}if(groupUnsub){groupUnsub();groupUnsub=null}if(peopleUnsub){peopleUnsub();peopleUnsub=null}
+  user=u;me=null;role='';hiccMode=false;sessions.clear();requests=[];approvalFaculty=[];approvalFacultyById=new Map();approvalFacultyLoaded=false;if(sessionUnsub){sessionUnsub();sessionUnsub=null}if(requestUnsub){requestUnsub();requestUnsub=null}if(groupUnsub){groupUnsub();groupUnsub=null}if(peopleUnsub){peopleUnsub();peopleUnsub=null}
   if(!u){injectButtons();queueDecorate();return}
   try{const d=await db.doc(`users/${u.uid}`).get();me=d.data()||{};await UCVM.ready(u,me);role=UCVM.role(me.role);await loadPeopleOnce();listenPeople();listenGroups();listenSessions();listenRequests();injectButtons()}catch(e){console.warn('[approval workflow init]',e)}
  });
