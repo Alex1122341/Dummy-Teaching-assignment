@@ -77,3 +77,13 @@ window.UCVM=(()=>{
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',watchForms,{once:true});else watchForms();
  return {config,role,admin,general,label,esc,init,ready,watch,logs};
 })();
+
+(()=>{
+ const page=(location.pathname.split('/').pop()||'index.html').toLowerCase();
+ if(page&&page!=='index.html')return;
+ const load=()=>{
+  if(document.querySelector('script[data-ucvm-approval-workflow]'))return;
+  const s=document.createElement('script');s.src='approval-workflow.js';s.dataset.ucvmApprovalWorkflow='1';s.async=false;document.head.appendChild(s);
+ };
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(load,0),{once:true});else setTimeout(load,0);
+})();
