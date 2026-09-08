@@ -1,0 +1,26 @@
+rules_version = '2';
+service cloud.firestore {
+ match /databases/{database}/documents {
+  function signedIn(){return request.auth != null;}
+  function profile(){return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;}
+  function ready(){return signedIn() && profile().active == true && profile().role in ['admin','editor','viewer','adfa_general','adfa_regular','hicc','visc','faculty'] && profile().get('mustChangePassword',false) == false && request.auth.token.auth_time >= profile().get('validAfterSeconds',0);}
+  function admin(){return ready() && profile().role in ['admin','adfa_general','adfa_regular'];}
+  function general(){return ready() && profile().role == 'adfa_general';}
+  match /users/{uid} {allow get: if signedIn() && (request.auth.uid == uid || general()); allow list: if general(); allow write: if false;}
+  match /faculty_groups/{id} {allow read: if ready() && (admin() || request.auth.uid in resource.data.memberUids); allow write: if false;}
+  match /sessions/{id} {
+   allow read: if ready();
+   allow create: if admin() && request.resource.data.updatedBy == request.auth.uid && !('auditEventId' in request.resource.data);
+   allow update: if admin() && request.resource.data.updatedBy == request.auth.uid && (request.resource.data.get('auditEventId',null) == null || request.resource.data.get('auditEventId',null) == resource.data.get('auditEventId',null));
+   allow delete: if admin();
+  }
+  match /faculty/{id} {allow read: if admin(); allow create,update: if admin() && request.resource.data.updatedBy == request.auth.uid; allow delete: if admin();}
+  match /settings/{id} {allow read,write: if admin();}
+  match /audit_events/{id} {allow read: if ready(); allow write: if false;}
+  match /account_audit/{id} {allow read: if general(); allow write: if false;}
+  // Existing clients retain their legacy summaries; authoritative history is server-written above.
+  match /session_change_log/{id} {allow read: if ready(); allow create: if admin() && request.resource.data.changedBy == request.auth.uid && request.resource.data.changedAt == request.time;}
+  match /faculty_change_log/{id} {allow read: if admin(); allow create: if admin() && request.resource.data.changedBy == request.auth.uid && request.resource.data.changedAt == request.time;}
+  match /{document=**} {allow read,write: if false;}
+ }
+}

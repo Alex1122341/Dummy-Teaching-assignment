@@ -1,0 +1,6 @@
+/* Run once with authorized Application Default Credentials and an existing administrator UID. */
+'use strict';
+const {initializeApp}=require('firebase-admin/app');const {getFirestore,FieldValue}=require('firebase-admin/firestore');const {getAuth}=require('firebase-admin/auth');
+const [projectId,uid]=process.argv.slice(2);if(!projectId||!uid)throw Error('Usage: node bootstrap-general.js PROJECT_ID EXISTING_ADMIN_UID');
+initializeApp({projectId});
+(async()=>{const db=getFirestore(),ref=db.doc(`users/${uid}`),user=await getAuth().getUser(uid);await db.runTransaction(async tx=>{const [s,g]=await Promise.all([tx.get(ref),tx.get(db.collection('users').where('role','==','adfa_general').where('active','==',true))]);if(!g.empty)throw Error('An ADFA General already exists. Use User Management.');if(!s.data()?.active||!['admin','adfa_regular'].includes(s.data().role))throw Error('Select an existing active ADFA administrator.');tx.update(ref,{role:'adfa_general',email:user.email||s.data().email||'',updatedAt:FieldValue.serverTimestamp()});tx.create(db.collection('account_audit').doc(),{action:'bootstrap_general',targetUid:uid,changedBy:'authorized_setup',changedAt:FieldValue.serverTimestamp()})});console.log('Existing administrator promoted to ADFA General. Password unchanged.');})().catch(e=>{console.error(e.message);process.exitCode=1});
