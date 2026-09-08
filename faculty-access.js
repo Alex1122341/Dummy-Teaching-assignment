@@ -5,8 +5,8 @@ window.UCVM=(()=>{
  const admin=p=>['adfa_general','adfa_regular'].includes(role(p?.role));
  const general=p=>role(p?.role)==='adfa_general';
  const label=r=>({adfa_general:'ADFA General',adfa_regular:'ADFA Regular',hicc:'HICC',visc:'VISC',faculty:'Faculty'}[role(r)]||r);
- const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
- function installWeekTimeAlignmentFix(){if(document.getElementById('ucvm-week-time-alignment-fix'))return;const style=document.createElement('style');style.id='ucvm-week-time-alignment-fix';style.textContent='.tg-track{top:0!important;bottom:0!important}';document.head.appendChild(style)}
+ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ function installWeekTimeAlignmentFix(){if(document.getElementById('ucvm-week-time-alignment-fix'))return;const style=document.createElement('style');style.id='ucvm-week-time-alignment-fix';style.textContent='.tg-track{top:0!important;bottom:0!important}.tg-block{position:absolute!important}';document.head.appendChild(style)}
  installWeekTimeAlignmentFix();
  function init(){if(!firebase.apps.length)firebase.initializeApp(config);return {auth:firebase.auth(),db:firebase.firestore()};}
  async function ready(user,p){if(!p?.active)throw Error('This account is inactive.');if(p.mustChangePassword){location.replace('password.html');return false}return true}
