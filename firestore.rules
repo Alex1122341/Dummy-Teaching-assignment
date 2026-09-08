@@ -10,6 +10,7 @@ service cloud.firestore {
   function explicitRole(r){return r in ['adfa_general','adfa_regular','hicc','visc','faculty'];}
   function facultyRole(r){return r in ['hicc','visc','faculty'];}
   function validFacultyLink(d){return !facultyRole(d.role) || (d.facultyId is string && d.facultyId.size() > 0 && exists(/databases/$(database)/documents/faculty/$(d.facultyId)));}
+  function ownFacultyRecord(){return ready() && resource.data.email is string && ((request.auth.token.email is string && resource.data.email == request.auth.token.email) || (profile().email is string && resource.data.email == profile().email));}
   function selfPasswordCompletion(uid){return signedIn() && request.auth.uid == uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['mustChangePassword','passwordChangedAt','updatedAt']) && request.resource.data.mustChangePassword == false && request.resource.data.passwordChangedAt == request.time && request.resource.data.updatedAt == request.time;}
   function generalUserCreate(){return general() && explicitRole(request.resource.data.role) && validFacultyLink(request.resource.data) && request.resource.data.active is bool && request.resource.data.updatedBy == request.auth.uid && request.resource.data.updatedAt == request.time && request.resource.data.createdAt == request.time && request.resource.data.keys().hasOnly(['name','email','role','facultyId','active','mustChangePassword','updatedBy','updatedByName','updatedAt','createdAt']);}
   function generalUserUpdate(uid){return general() && explicitRole(request.resource.data.role) && validFacultyLink(request.resource.data) && request.resource.data.active is bool && request.resource.data.updatedBy == request.auth.uid && request.resource.data.updatedAt == request.time && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name','email','role','facultyId','active','mustChangePassword','updatedBy','updatedByName','updatedAt']) && (uid != request.auth.uid || (request.resource.data.role == 'adfa_general' && request.resource.data.active == true));}
@@ -37,7 +38,7 @@ service cloud.firestore {
    allow delete: if admin();
   }
   match /faculty/{id} {
-   allow read: if admin();
+   allow get,list: if admin() || ownFacultyRecord();
    allow create,update: if admin() && request.resource.data.updatedBy == request.auth.uid;
    allow delete: if admin();
   }
