@@ -31,7 +31,22 @@ window.UCVM=(()=>{
  }
  installStableWeekLanes();
  function init(){if(!firebase.apps.length)firebase.initializeApp(config);return {auth:firebase.auth(),db:firebase.firestore()};}
- async function ready(user,p){if(!p?.active)throw Error('This account is inactive.');if(p.mustChangePassword){location.replace('password.html');return false}return true}
+ async function linkFacultyIdentity(user,p){
+  if(admin(p))return;
+  const emails=[user?.email,p?.email].map(v=>String(v||'').trim()).filter((v,i,a)=>v&&a.indexOf(v)===i);
+  for(const email of emails){
+   try{
+    const q=await firebase.firestore().collection('faculty').where('email','==',email).limit(2).get();
+    if(q.empty)continue;
+    const d=q.docs[0],f=d.data()||{},name=String(f.preferredFullName||f.hrFullName||f.name||p.instructor||p.name||'').trim();
+    if(!p.facultyId)p.facultyId=d.id||f.ucid||'';
+    if(name)p.instructor=name;
+    p.facultyDirectoryMatch={id:d.id,email,name};
+    return;
+   }catch(_){/* Keep the account usable even if the optional directory match is unavailable. */}
+  }
+ }
+ async function ready(user,p){if(!p?.active)throw Error('This account is inactive.');if(p.mustChangePassword){location.replace('password.html');return false}await linkFacultyIdentity(user,p);return true}
  function watch(user,p){let initial=true;return firebase.firestore().doc(`users/${user.uid}`).onSnapshot(s=>{const n=s.data();if(initial){initial=false;return}if(!n||['role','active','mustChangePassword'].some(k=>n[k]!==p[k]))location.reload()})}
  const value=v=>v===null||v===undefined?'—':Array.isArray(v)?v.map(x=>typeof x==='object'?`${x.name||x.ucid||''}${x.role?' ('+x.role+')':''}`:String(x)).filter(Boolean).join('; '):typeof v==='object'?JSON.stringify(v):String(v);
  const time=e=>e.changedAt?.toDate?e.changedAt.toDate().toLocaleString('en-CA',{timeZone:'America/Edmonton'}):'Pending';
