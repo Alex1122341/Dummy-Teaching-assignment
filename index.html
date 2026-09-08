@@ -185,13 +185,13 @@ body{font-family:"Segoe UI",Arial,Helvetica,sans-serif;background:var(--bg);colo
     <div class="auth-gate-card">
       <div class="auth-gate-brand">UCVM</div>
       <div class="auth-gate-title">2026-2027 Timetable</div>
-      <div class="auth-gate-copy">This timetable is restricted. Sign in with an authorized Firebase account to continue.</div>
+      <div class="auth-gate-copy">Sign in with your authorized UCVM account to continue.</div>
       <div class="auth-gate-status"><span class="gate-dot"></span><span id="gate-status">Connecting to Firebase...</span></div>
       <div class="auth-gate-actions">
         <button class="auth-gate-signin" id="gate-sign-in">Sign in</button>
         <button class="auth-gate-setup" id="gate-auth-setup">Local Auth Setup</button>
       </div>
-      <div class="auth-gate-note">After authentication, access is checked against <code>Firestore &gt; users/{UID}</code>. Only active viewer/editor/admin accounts can open the timetable.</div>
+      <div class="auth-gate-note">Your account role determines the timetable and faculty tools you can access.</div>
     </div>
   </div>
 
@@ -431,6 +431,7 @@ body{font-family:"Segoe UI",Arial,Helvetica,sans-serif;background:var(--bg);colo
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js"></script><script src="faculty-access.js"></script>
   <script>
 (() => {
   'use strict';
@@ -518,7 +519,7 @@ body{font-family:"Segoe UI",Arial,Helvetica,sans-serif;background:var(--bg);colo
   }
 
   function canEdit() {
-    return !!currentUser && (currentUser.role === 'editor' || currentUser.role === 'admin');
+    return UCVM.admin(currentUser);
   }
 
   async function getRoleProfile(firebaseUser) {
@@ -536,8 +537,8 @@ body{font-family:"Segoe UI",Arial,Helvetica,sans-serif;background:var(--bg);colo
       throw err;
     }
     const role = String(data.role || '').trim().toLowerCase();
-    if (!['viewer', 'editor', 'admin'].includes(role)) {
-      const err = new Error(`Invalid Firestore role: ${role || '(blank)'}. Use viewer, editor, or admin.`);
+    if (!['viewer', 'editor', 'admin', 'adfa_general', 'adfa_regular', 'hicc', 'visc', 'faculty'].includes(role)) {
+      const err = new Error(`Invalid Firestore role: ${role || '(blank)'}. Use faculty, hicc, visc, adfa_regular, or adfa_general.`);
       err.code = 'ucvm/invalid-role';
       throw err;
     }
@@ -649,7 +650,7 @@ body{font-family:"Segoe UI",Arial,Helvetica,sans-serif;background:var(--bg);colo
     $('side-toggle-btn')?.classList.toggle('ui-pref-hidden', !x.showUpdates && !x.showExport);
   }
 
-  function isAdmin() { return currentUser?.role === 'admin'; }
+  function isAdmin() { return UCVM.admin(currentUser); }
 
   function fillUIEditor(settings) {
     const x = normalizeUISettings(settings);
@@ -896,7 +897,7 @@ body{font-family:"Segoe UI",Arial,Helvetica,sans-serif;background:var(--bg);colo
     }
     const publish = $('publish-firestore-schedule');
     if (publish) {
-      publish.classList.toggle('hidden', currentUser?.role !== 'admin');
+      publish.classList.toggle('hidden', !UCVM.admin(currentUser));
       publish.textContent = live ? 'Synced Schedule Ready' : 'Sync from Faculty Dashboard';
       publish.disabled = false;
     }
@@ -998,7 +999,7 @@ body{font-family:"Segoe UI",Arial,Helvetica,sans-serif;background:var(--bg);colo
 
   function unsubscribeFacultyDirectory(){ if(facultyUnsubscribe){try{facultyUnsubscribe()}catch(_){ } facultyUnsubscribe=null;} facultyDirectory=[]; }
   function subscribeFacultyDirectory(){
-    if(!db||currentUser?.role!=='admin'){unsubscribeFacultyDirectory();return;}
+    if(!db||!UCVM.admin(currentUser)){unsubscribeFacultyDirectory();return;}
     if(facultyUnsubscribe){try{facultyUnsubscribe()}catch(_){}}
     facultyUnsubscribe=db.collection('faculty').onSnapshot(snapshot=>{
       facultyDirectory=snapshot.docs.map(d=>({__id:d.id,...d.data()})).filter(f=>f.active!==false).sort((a,b)=>swapFacultyName(a).localeCompare(swapFacultyName(b)));
@@ -1041,7 +1042,7 @@ body{font-family:"Segoe UI",Arial,Helvetica,sans-serif;background:var(--bg);colo
   function swapPct(v,d=2){return v===null?'—':`${Number(v).toFixed(d)}%`}
 
   function openSwapModal(sessionId,initialAssignmentIndex=0){
-    if(currentUser?.role!=='admin'){toast('Admin permission is required to swap faculty.',true);return;}
+    if(!UCVM.admin(currentUser)){toast('Admin permission is required to swap faculty.',true);return;}
     if(scheduleSource!=='firestore'){toast('The synchronized live timetable must be loaded first.',true);return;}
     const s=sessions.find(x=>x.id===sessionId); if(!s)return;
     const assignments=sessionAssignmentsForSwap(s); if(!assignments.length){toast('This course block has no faculty assignment to swap.',true);return;}
@@ -1094,7 +1095,7 @@ body{font-family:"Segoe UI",Arial,Helvetica,sans-serif;background:var(--bg);colo
   }
 
   async function performFacultySwap(session,assignments,outIndex,newFacultyId,doeState){
-    if(currentUser?.role!=='admin')return;
+    if(!UCVM.admin(currentUser))return;
     const replacement=facultyDirectory.find(f=>String(f.__id)===String(newFacultyId)); if(!replacement)return;
     const outgoing=assignments[outIndex]; if(!outgoing)return;
     const oldFaculty=facultyForAssignment(outgoing); const oldName=outgoing.name||swapFacultyName(oldFaculty)||'Unknown'; const newName=swapFacultyName(replacement);
@@ -1112,7 +1113,7 @@ body{font-family:"Segoe UI",Arial,Helvetica,sans-serif;background:var(--bg);colo
   }
 
   async function initializeLiveSchedule() {
-    if (currentUser?.role !== 'admin') { toast('Admin permission is required.', true); return; }
+    if (!UCVM.admin(currentUser)) { toast('Admin permission is required.', true); return; }
     if (confirm('The timetable is now sourced only from 2026-09-03 - All Faculty Summaries.xlsx. Open the Faculty Dashboard to replace and synchronize the source data?')) location.href='faculty-admin.html';
   }
 
@@ -1199,7 +1200,7 @@ body{font-family:"Segoe UI",Arial,Helvetica,sans-serif;background:var(--bg);colo
     $('gate-auth-setup').addEventListener('click', openAuthSetupModal);
     $('add-session-btn').addEventListener('click', () => openSessionForm());
     $('manage-users-btn').addEventListener('click', openUserManager);
-    $('faculty-dashboard-btn').addEventListener('click', () => { window.location.href = 'faculty-admin.html'; });
+    $('faculty-dashboard-btn').addEventListener('click', () => { window.location.href = UCVM.admin(currentUser) ? 'faculty-admin.html' : 'faculty-dashboard.html'; });
     $('my-timetable-btn').addEventListener('click', () => { myTimetableOnly = !myTimetableOnly; $('my-timetable-btn').textContent = myTimetableOnly ? 'Show All Timetable' : 'My Timetable'; render(); });
     $('course-list-btn').addEventListener('click', openCourseList);
     $('export-csv').addEventListener('click', exportCsv);
@@ -1391,10 +1392,10 @@ body{font-family:"Segoe UI",Arial,Helvetica,sans-serif;background:var(--bg);colo
       course:'200', type:'LEC', topic:'New Session', instructor:'', room:'', start:'09:00', end:'10:00', assignments:[]
     };
     let editorAssignments=sessionAssignmentsForSwap(s).map((a,i)=>({...a,__editorKey:`existing-${i}-${Date.now()}`}));
-    if(!editorAssignments.length&&currentUser?.role==='admin') editorAssignments=[];
+    if(!editorAssignments.length&&UCVM.admin(currentUser)) editorAssignments=[];
     const renderInstructorEditor=()=>{
       const host=$('instructor-lines'); if(!host)return;
-      const isAdmin=currentUser?.role==='admin';
+      const isAdmin=UCVM.admin(currentUser);
       const usedIds=new Set(editorAssignments.map(a=>String(a.ucid||facultyForAssignment(a)?.__id||'')).filter(Boolean));
       if(!editorAssignments.length){host.innerHTML='<div class="instructor-empty">No instructor is currently assigned to this session.</div>'}
       else host.innerHTML=editorAssignments.map((a,i)=>{
@@ -1427,7 +1428,7 @@ body{font-family:"Segoe UI",Arial,Helvetica,sans-serif;background:var(--bg);colo
         ${input('start','Start','time',s.start)}
         ${input('end','End','time',s.end)}
         ${input('topic','Topic','text',s.topic,'full')}
-        <div class="form-field instructor-editor"><label class="form-label">Instructor(s)</label><div id="instructor-lines" class="instructor-lines"></div>${currentUser?.role==='admin'?'<button type="button" class="btn btn-secondary instructor-add" id="add-instructor-line">+ Add instructor</button><div class="instructor-note">One instructor per line. Select from the active faculty directory. Availability checks both Away from Campus and overlapping live timetable courses at the selected date and time. AFC only reports Unavailable; timetable conflicts continue to show the conflicting course/time. Unavailable or uncertain selections show a warning; admins may override. Add/remove controls are administrator-only. Existing teaching role and DOE credit stay with the line when you change the selected faculty.</div>':'<div class="instructor-note">Instructor assignments are managed by administrators.</div>'}</div>
+        <div class="form-field instructor-editor"><label class="form-label">Instructor(s)</label><div id="instructor-lines" class="instructor-lines"></div>${UCVM.admin(currentUser)?'<button type="button" class="btn btn-secondary instructor-add" id="add-instructor-line">+ Add instructor</button><div class="instructor-note">One instructor per line. Select from the active faculty directory. Availability checks both Away from Campus and overlapping live timetable courses at the selected date and time. AFC only reports Unavailable; timetable conflicts continue to show the conflicting course/time. Unavailable or uncertain selections show a warning; admins may override. Add/remove controls are administrator-only. Existing teaching role and DOE credit stay with the line when you change the selected faculty.</div>':'<div class="instructor-note">Instructor assignments are managed by administrators.</div>'}</div>
         ${input('room','Room','text',s.room)}
       </div></div>
       <div class="modal-footer"><div>${existing ? '<button type="button" class="btn-danger-text" id="delete-session">Delete Session</button>' : ''}</div><div><button type="button" class="btn btn-secondary" id="cancel-session">Cancel</button> <button class="btn btn-primary" type="submit">Save Live Session</button></div></div>
@@ -1447,12 +1448,13 @@ body{font-family:"Segoe UI",Arial,Helvetica,sans-serif;background:var(--bg);colo
       const pos = academicPositionForDate(date);
       const topic=form.get('topic'), type=form.get('type'), start=form.get('start'), end=form.get('end');
       const assignments=finalizeInstructorAssignments(editorAssignments,type,start,end,topic);
-      if(currentUser?.role==='admin'){
+      if(UCVM.admin(currentUser)){
         const checks=assignments.map(a=>({a,f:facultyDirectory.find(x=>String(x.__id)===String(a.ucid||''))})).filter(x=>x.f).map(x=>({...x,av:facultyAssignmentAvailability(x.f,String(form.get('date')),start,end,existing?.id||'')})).filter(x=>x.av.available!==true);
         if(checks.length){const msg=checks.map(x=>`- ${x.a.name}: ${assignmentAvailabilityDetail(x.av,String(form.get('date')),start,end)}`).join('\n');if(!confirm(`Faculty availability warning for ${form.get('date')} ${start}-${end}:\n\n${msg}\n\nThis checks both AFC and overlapping live timetable courses. AFC reasons are intentionally hidden here. Save this assignment anyway?`))return;}
       }
       const next = {
         id: existing?.id || `S${Date.now()}`,
+        ...(existing?.auditEventId ? {auditEventId: existing.auditEventId} : {}),
         date: form.get('date'), week:pos.week, semester:pos.semester, year:Number(form.get('year')),
         course:form.get('course'), courseName:(COURSES.find(c=>String(c.code)===String(form.get('course')))||{}).name||existing?.courseName||'', type, topic, instructor:assignments.map(a=>a.name).join('; '), room:form.get('room'),
         start, end, assignments, labDetails:labDetailsFromAssignments(type,assignments,topic), sourceSystem:'Synchronized live timetable'
@@ -1480,6 +1482,7 @@ body{font-family:"Segoe UI",Arial,Helvetica,sans-serif;background:var(--bg);colo
   }
 
   async function deleteSession(id) {
+    if (!UCVM.admin(currentUser)) { toast('ADFA permission is required.', true); return; }
     const s = sessions.find(x => x.id === id); if (!s) return;
     if (scheduleSource !== 'firestore') { toast('Live Schedule is not initialized.', true); return; }
     if (!confirm(`Delete ${s.course} - ${s.topic} from the live schedule?`)) return;
@@ -1551,6 +1554,8 @@ body{font-family:"Segoe UI",Arial,Helvetica,sans-serif;background:var(--bg);colo
           text.textContent = 'Checking Firestore role...';
           setAppLocked(true, 'Checking your timetable access...');
           const profile = await getRoleProfile(user);
+          if (!await UCVM.ready(user, profile)) return;
+          UCVM.watch(user, profile);
           const name = String(profile.name || user.displayName || (email ? email.split('@')[0] : phone) || 'UCVM User');
           currentUser = {
             id: user.uid,
@@ -1570,7 +1575,7 @@ body{font-family:"Segoe UI",Arial,Helvetica,sans-serif;background:var(--bg);colo
           updateAuthUI();
           renderUpdates();
           subscribeSessions();
-          if (profile.role === 'admin') subscribeFacultyDirectory(); else unsubscribeFacultyDirectory();
+          if (UCVM.admin(profile)) subscribeFacultyDirectory(); else unsubscribeFacultyDirectory();
           render();
           setAppLocked(false);
           updateScheduleSourceUI();
@@ -1619,7 +1624,7 @@ body{font-family:"Segoe UI",Arial,Helvetica,sans-serif;background:var(--bg);colo
     if (requireLocalhost()) return;
     if (!authInitialized || !auth) { toast('Firebase Authentication is not initialized.', true); return; }
     showModal(`
-      <div class="modal-header"><div class="modal-title">Sign in to UCVM Timetable Test</div><div class="modal-subtitle">Choose either Email or Phone. Authentication and role authorization are real; schedule source data is loaded from the uploaded Year 1-3 and lab workbooks, while edits are still local-only.</div></div>
+      <div class="modal-header"><div class="modal-title">Sign in to UCVM Timetable</div><div class="modal-subtitle">Sign in with your authorized account to view the live timetable.</div></div>
       <div class="modal-body">
         <div class="login-cheatsheet"><strong>Firebase project:</strong> Tester Teaching (<code>tester-teaching</code>)<br>Enable the matching provider in Firebase Authentication. Your UID must also exist under Firestore <code>users/{uid}</code>.</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px">
@@ -1638,7 +1643,7 @@ body{font-family:"Segoe UI",Arial,Helvetica,sans-serif;background:var(--bg);colo
     showModal(`
       <div class="modal-header"><div class="modal-title">Email Sign In</div><div class="modal-subtitle">Uses Firebase Email/Password authentication.</div></div>
       <form id="email-login-form"><div class="modal-body">
-        <div class="login-cheatsheet"><strong>Firebase setup:</strong> Authentication > Sign-in method > enable <strong>Email/Password</strong>.<br>For testing, create a user under Authentication > Users > Add user.</div>
+        <div class="login-cheatsheet">Use the email address registered by ADFA General. New faculty accounts must change their temporary password after signing in.</div>
         <div class="form-field"><label class="form-label">Email</label><input class="form-input" id="login-email" name="email" type="email" placeholder="name@ucalgary.ca" autocomplete="username" required></div>
         <div class="form-field"><label class="form-label">Password</label><input class="form-input" id="login-password" name="password" type="password" autocomplete="current-password" required></div>
       </div><div class="modal-footer"><button type="button" class="btn btn-secondary" id="email-back">Back</button><button class="btn btn-primary" type="submit">Sign in with Email</button></div></form>`);
@@ -1789,7 +1794,7 @@ body{font-family:"Segoe UI",Arial,Helvetica,sans-serif;background:var(--bg);colo
         </div>
         <div class="form-hint">My Timetable mapping: <strong>${escapeHtml(currentUser.instructorName)}</strong>.</div>
       </div>
-      <div class="modal-footer"><button class="btn btn-secondary" id="account-close">Close</button><button class="btn btn-primary" id="logout-btn">Sign Out</button></div>`);
+      <div class="modal-footer"><a class="btn btn-secondary" href="password.html">Change password</a><button class="btn btn-secondary" id="account-close">Close</button><button class="btn btn-primary" id="logout-btn">Sign Out</button></div>`);
     $('account-close').onclick = closeModal;
     $('logout-btn').onclick = async () => {
       closeModal();
@@ -1802,25 +1807,19 @@ body{font-family:"Segoe UI",Arial,Helvetica,sans-serif;background:var(--bg);colo
     b.textContent = currentUser ? `${currentUser.name} - ${currentUser.role}` : 'Sign in';
     b.classList.toggle('is-admin', canEdit());
     $('add-session-btn').classList.toggle('hidden', !canEdit());
-    $('manage-users-btn').classList.toggle('hidden', currentUser?.role !== 'admin');
-    $('faculty-dashboard-btn').classList.toggle('hidden', currentUser?.role !== 'admin');
-    $('publish-firestore-schedule').classList.toggle('hidden', currentUser?.role !== 'admin');
+    $('manage-users-btn').classList.toggle('hidden', !(UCVM.general(currentUser) || currentUser?.role === 'hicc'));
+    $('faculty-dashboard-btn').classList.toggle('hidden', !currentUser);
+    $('publish-firestore-schedule').classList.toggle('hidden', !UCVM.admin(currentUser));
     updateScheduleSourceUI();
-    $('ui-edit-mode-btn').classList.toggle('hidden', currentUser?.role !== 'admin');
+    $('ui-edit-mode-btn').classList.toggle('hidden', !UCVM.admin(currentUser));
     $('my-timetable-btn').classList.toggle('hidden', !currentUser);
     $('my-timetable-btn').classList.toggle('ui-pref-hidden', !uiSettings.showMyTimetable);
-    if (currentUser?.role !== 'admin' && !$('ui-editor-panel').classList.contains('hidden')) closeUIEditor(true);
+    if (!UCVM.admin(currentUser) && !$('ui-editor-panel').classList.contains('hidden')) closeUIEditor(true);
     if (!currentUser || !myTimetableOnly) $('my-timetable-btn').textContent = 'My Timetable';
   }
 
   function openUserManager() {
-    if (currentUser?.role !== 'admin') return;
-    showModal(`
-      <div class="modal-header"><div class="modal-title">Role Management</div><div class="modal-subtitle">V9.7 keeps user-role management unchanged. The timetable is Firestore-only. Open a timetable block to access SWAP Faculty; admin instructor selection checks both AFC and overlapping courses in the live timetable.</div></div>
-      <div class="modal-body">
-        <div class="login-cheatsheet">Manage roles in <strong>Firebase Console &gt; Firestore &gt; users</strong>.<br><br>Each document ID is the Firebase Authentication UID. Use <code>active: true</code> and role <code>viewer</code>, <code>editor</code>, or <code>admin</code>.</div>
-      </div><div class="modal-footer"><span></span><button class="btn btn-secondary" id="users-close">Close</button></div>`);
-    $('users-close').onclick = closeModal;
+    if (UCVM.general(currentUser) || currentUser?.role === 'hicc') location.href = 'user-management.html';
   }
 
   function openCourseList() {
