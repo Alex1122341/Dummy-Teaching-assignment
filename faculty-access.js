@@ -48,7 +48,21 @@ window.UCVM=(()=>{
    }catch(_){/* Keep the account usable even if the optional directory match is unavailable. */}
   }
  }
- async function ready(user,p){if(!p?.active)throw Error('This account is inactive.');if(p.mustChangePassword){location.replace('password.html');return false}installLandingReset();await linkFacultyIdentity(user,p);const page=(location.pathname.split('/').pop()||'index.html').toLowerCase(),raw=rawRole(p);if(page==='index.html'&&['owner','administrator','adfa_general','adfa_regular','admin'].includes(raw)){try{if(sessionStorage.getItem('ucvm-admin-default-landing')!==user.uid){sessionStorage.setItem('ucvm-admin-default-landing',user.uid);location.replace('faculty-admin.html');return false}}catch(_){}}return true}
+ function scheduleAdminLanding(user,p){
+  const page=(location.pathname.split('/').pop()||'index.html').toLowerCase(),raw=rawRole(p);
+  if(page!=='index.html'||!['owner','administrator','adfa_general','adfa_regular','admin'].includes(raw))return;
+  try{
+   if(sessionStorage.getItem('ucvm-admin-default-landing')===user.uid)return;
+   sessionStorage.setItem('ucvm-admin-default-landing',user.uid);
+   setTimeout(()=>{
+    try{
+     const current=firebase.auth().currentUser;
+     if(current&&current.uid===user.uid&&((location.pathname.split('/').pop()||'index.html').toLowerCase()==='index.html'))location.replace('faculty-admin.html');
+    }catch(_){}
+   },900);
+  }catch(_){}
+ }
+ async function ready(user,p){if(!p?.active)throw Error('This account is inactive.');if(p.mustChangePassword){location.replace('password.html');return false}installLandingReset();await linkFacultyIdentity(user,p);scheduleAdminLanding(user,p);return true}
  function watch(user,p){let initial=true;return firebase.firestore().doc(`users/${user.uid}`).onSnapshot(s=>{const n=s.data();if(initial){initial=false;return}if(!n||['role','active','mustChangePassword'].some(k=>n[k]!==p[k]))location.reload()})}
  const value=v=>v===null||v===undefined?'—':Array.isArray(v)?v.map(x=>typeof x==='object'?`${x.name||x.ucid||''}${x.role?' ('+x.role+')':''}`:String(x)).filter(Boolean).join('; '):typeof v==='object'?JSON.stringify(v):String(v);
  const time=e=>e.changedAt?.toDate?e.changedAt.toDate().toLocaleString('en-CA',{timeZone:'America/Edmonton'}):'Pending';
