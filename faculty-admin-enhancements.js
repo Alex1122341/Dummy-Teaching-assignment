@@ -47,7 +47,14 @@
  .ucvm-managed-source{display:inline-block;margin-left:4px;padding:1px 5px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:9px;font-weight:800}
  @media(max-width:900px){.ucvm-managed-role-row,.ucvm-override-grid{grid-template-columns:1fr 1fr}.ucvm-managed-role-row .ucvm-role-notes{grid-column:1/-1}}
  `;document.head.appendChild(s)}
- function renameDashboard(){document.title='UCVM Faculty Dashboard - DOE & Faculty Administration';const bt=document.querySelector('.brand-title');if(bt)bt.textContent='Faculty Dashboard';const gt=document.querySelector('.gate-title');if(gt)gt.textContent='Faculty Dashboard';const gc=document.querySelector('.gate-copy');if(gc)gc.innerHTML='This dashboard is restricted to active <strong>Owner, Administrator, or Other Office</strong> accounts. Faculty can use the <a href="faculty-dashboard.html">personal Faculty Dashboard</a>.'}
+ function renameDashboard(){
+  if(document.documentElement.dataset.ucvmDashboardRenamed==='1')return;
+  document.documentElement.dataset.ucvmDashboardRenamed='1';
+  document.title='UCVM Faculty Dashboard - DOE & Faculty Administration';
+  const bt=document.querySelector('.brand-title');if(bt)bt.textContent='Faculty Dashboard';
+  const gt=document.querySelector('.gate-title');if(gt)gt.textContent='Faculty Dashboard';
+  const gc=document.querySelector('.gate-copy');if(gc)gc.innerHTML='This dashboard is restricted to active <strong>Owner, Administrator, or Other Office</strong> accounts. Faculty can use the <a href="faculty-dashboard.html">personal Faculty Dashboard</a>.';
+ }
 
  function ensureDoeView(){
   const tabs=document.querySelector('.tabs');if(!tabs||$('doe-list-tab'))return;
