@@ -7,6 +7,22 @@ window.UCVM=(()=>{
  const general=p=>role(p?.role)==='adfa_general';
  const label=r=>({owner:'Owner',adfa_general:'Owner',administrator:'Administrator',adfa_regular:'Administrator',admin:'Administrator',other_office:'Other Office',hicc:'HICC',visc:'VISC',faculty:'Faculty',editor:'Faculty',viewer:'Faculty'}[rawRole(r)]||rawRole(r));
  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ // index.html still contains one legacy hard-coded role whitelist. Keep its raw
+ // Firestore role values intact while allowing the three new account roles.
+ function installIndexRoleWhitelistCompat(){
+  const page=(location.pathname.split('/').pop()||'index.html').toLowerCase();
+  if(page!=='index.html'||window.__ucvmIndexRoleWhitelistCompat)return;
+  window.__ucvmIndexRoleWhitelistCompat=true;
+  const nativeIncludes=Array.prototype.includes;
+  const legacy=['viewer','editor','admin','adfa_general','adfa_regular','hicc','visc','faculty'];
+  const modern=['owner','administrator','other_office'];
+  Array.prototype.includes=function(search,fromIndex){
+   const exact=this&&this.length===legacy.length&&legacy.every((v,i)=>this[i]===v);
+   if(exact&&nativeIncludes.call(modern,String(search||'').toLowerCase()))return true;
+   return nativeIncludes.call(this,search,fromIndex);
+  };
+ }
+ installIndexRoleWhitelistCompat();
  function installWeekTimeAlignmentFix(){if(document.getElementById('ucvm-week-time-alignment-fix'))return;const style=document.createElement('style');style.id='ucvm-week-time-alignment-fix';style.textContent='.tg-track{top:0!important;bottom:0!important}.tg-block{position:absolute!important}';document.head.appendChild(style)}
  installWeekTimeAlignmentFix();
  function installStableWeekLanes(){
