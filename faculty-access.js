@@ -31,7 +31,18 @@ window.UCVM=(()=>{
   new MutationObserver(m=>{if(m.some(x=>[...x.addedNodes].some(n=>n.nodeType===1&&(n.matches?.('.tg-day-col,.tg-block')||n.querySelector?.('.tg-day-col,.tg-block')))))queue()}).observe(document.documentElement,{childList:true,subtree:true});
  }
  installStableWeekLanes();
- function init(){if(!firebase.apps.length)firebase.initializeApp(config);return {auth:firebase.auth(),db:firebase.firestore()};}
+ let persistenceStarted=false;
+ function init(){
+  if(!firebase.apps.length)firebase.initializeApp(config);
+  const db=firebase.firestore();
+  if(!persistenceStarted){
+   persistenceStarted=true;
+   db.enablePersistence({synchronizeTabs:true}).catch(e=>{
+    if(!['failed-precondition','unimplemented'].includes(e?.code))console.warn('[firestore persistence]',e);
+   });
+  }
+  return {auth:firebase.auth(),db};
+ }
  function installLandingReset(){if(window.__ucvmLandingResetInstalled||typeof firebase==='undefined')return;window.__ucvmLandingResetInstalled=true;try{firebase.auth().onAuthStateChanged(u=>{if(!u)sessionStorage.removeItem('ucvm-admin-default-landing')})}catch(_){}}
  async function linkFacultyIdentity(user,p){
   if(admin(p))return;

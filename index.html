@@ -524,7 +524,7 @@ body{font-family:"Segoe UI",Arial,Helvetica,sans-serif;background:var(--bg);colo
 
   async function getRoleProfile(firebaseUser) {
     if (!db) throw new Error('Firestore is not initialized.');
-    const snap = await db.collection('users').doc(firebaseUser.uid).get();
+    const snap = await window.UCVM_PAGE_DATA.profileSnapshot(firebaseUser.uid);
     if (!snap.exists) {
       const err = new Error(`No Firestore user profile exists for UID ${firebaseUser.uid}.`);
       err.code = 'ucvm/profile-not-found';
@@ -809,6 +809,15 @@ body{font-family:"Segoe UI",Arial,Helvetica,sans-serif;background:var(--bg);colo
   let sessionUnsubscribe = null;
   let facultyUnsubscribe = null;
   let facultyDirectory = [];
+  const profileSnapshots=new Map();
+  window.UCVM_PAGE_DATA={
+    sessions:()=>sessions.slice(),
+    faculty:()=>facultyDirectory.slice(),
+    profileSnapshot:uid=>{
+      if(!profileSnapshots.has(uid))profileSnapshots.set(uid,db.collection('users').doc(uid).get());
+      return profileSnapshots.get(uid);
+    }
+  };
   let scheduleSource = 'firestore-pending';
   let currentUser = null;
   let selectedWeek = 1;
@@ -908,6 +917,7 @@ body{font-family:"Segoe UI",Arial,Helvetica,sans-serif;background:var(--bg);colo
     if (sessionUnsubscribe) { try { sessionUnsubscribe(); } catch (_) {} }
     sessionUnsubscribe = db.collection(SESSION_COLLECTION).onSnapshot(snapshot => {
       sessions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      window.dispatchEvent(new Event('ucvm:sessions-updated'));
       scheduleSource = sessions.length ? 'firestore' : 'firestore-empty';
       populateCourseFilter();
       updateScheduleSourceUI();
@@ -1003,6 +1013,7 @@ body{font-family:"Segoe UI",Arial,Helvetica,sans-serif;background:var(--bg);colo
     if(facultyUnsubscribe){try{facultyUnsubscribe()}catch(_){}}
     facultyUnsubscribe=db.collection('faculty').onSnapshot(snapshot=>{
       facultyDirectory=snapshot.docs.map(d=>({__id:d.id,...d.data()})).filter(f=>f.active!==false).sort((a,b)=>swapFacultyName(a).localeCompare(swapFacultyName(b)));
+      window.dispatchEvent(new Event('ucvm:faculty-updated'));
     },err=>{console.error('[faculty subscription for swap]',err);facultyDirectory=[];toast('Faculty list could not be loaded for SWAP. Check admin faculty read rules.',true)});
   }
 
@@ -1500,9 +1511,9 @@ body{font-family:"Segoe UI",Arial,Helvetica,sans-serif;background:var(--bg);colo
     const text = $('conn-text');
     try {
       if (typeof firebase === 'undefined') throw new Error('Firebase libraries did not load. Check your internet connection.');
-      if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
-      auth = firebase.auth();
-      db = firebase.firestore();
+      const shared=UCVM.init();
+      auth = shared.auth;
+      db = shared.db;
       authInitialized = true;
       auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(() => {});
       dot.classList.add('online');

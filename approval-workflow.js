@@ -59,10 +59,12 @@
  function resolveFaculty(ref){const id=String(ref?.facultyId||ref?.ucid||'').trim();if(id&&approvalFacultyById.has(id))return approvalFacultyById.get(id);const key=norm(ref?.name||'');if(!key)return null;return approvalFaculty.find(f=>facultyAliases(f).has(key))||null}
  async function ensureApprovalFaculty(){
   if(!isApprover()||approvalFacultyLoaded)return;
+  const shared=window.UCVM_PAGE_DATA?.faculty?.()||[];
+  if(shared.length){approvalFaculty=shared;approvalFacultyById=new Map(shared.map(f=>[String(f.__id),f]));approvalFacultyLoaded=true;return}
   const q=await db.collection('faculty').get();approvalFaculty=q.docs.map(d=>({__id:d.id,...d.data()}));approvalFacultyById=new Map(approvalFaculty.map(f=>[String(f.__id),f]));approvalFacultyLoaded=true;
  }
  async function ensureApprovalSessions(){
-  if(sessions.size)return;const q=await db.collection(SESSIONS).get();sessions=new Map(q.docs.map(d=>[d.id,{id:d.id,...d.data()}]));
+  if(sessions.size)return;const shared=window.UCVM_PAGE_DATA?.sessions?.()||[];if(shared.length){sessions=new Map(shared.map(s=>[s.id,s]));return}const q=await db.collection(SESSIONS).get();sessions=new Map(q.docs.map(d=>[d.id,{id:d.id,...d.data()}]));
  }
  function buildDoeState(){
   const state=new Map(),aliases=new Map();
@@ -98,12 +100,6 @@
   const t=$('toast'); if(!t){alert(msg);return} t.textContent=msg;t.classList.toggle('error',error);t.classList.add('show');setTimeout(()=>t.classList.remove('show'),error?6000:3200);
  }
 
- async function loadPeopleOnce(){
-  if(!roleIsFaculty(role))return;
-  const q=await db.collection('users').where('role','in',['faculty','hicc','visc']).get();
-  people=q.docs.map(d=>({uid:d.id,...d.data(),role:UCVM.role(d.data().role)})).filter(p=>p.active===true);
-  peopleByUid=new Map(people.map(p=>[p.uid,p]));
- }
  function listenPeople(){
   if(peopleUnsub){peopleUnsub();peopleUnsub=null}
   if(!roleIsFaculty(role))return;
@@ -123,6 +119,10 @@
  function listenSessions(){
   if(sessionUnsub){sessionUnsub();sessionUnsub=null}
   if(!user)return;
+  if(window.UCVM_PAGE_DATA?.sessions){
+   const sync=()=>{const rows=window.UCVM_PAGE_DATA.sessions();sessions=new Map(rows.map(s=>[s.id,s]));rebuildHiccScope();queueDecorate()};
+   window.addEventListener('ucvm:sessions-updated',sync);sync();sessionUnsub=()=>window.removeEventListener('ucvm:sessions-updated',sync);return;
+  }
   sessionUnsub=db.collection(SESSIONS).onSnapshot(q=>{
     sessions=new Map(q.docs.map(d=>[d.id,{id:d.id,...d.data()}]));rebuildHiccScope();queueDecorate();
   },e=>console.warn('[workflow sessions]',e));
@@ -331,6 +331,6 @@
  auth.onAuthStateChanged(async u=>{
   user=u;me=null;role='';hiccMode=false;sessions.clear();requests=[];approvalFaculty=[];approvalFacultyById=new Map();approvalFacultyLoaded=false;if(sessionUnsub){sessionUnsub();sessionUnsub=null}if(requestUnsub){requestUnsub();requestUnsub=null}if(groupUnsub){groupUnsub();groupUnsub=null}if(peopleUnsub){peopleUnsub();peopleUnsub=null}
   if(!u){injectButtons();queueDecorate();return}
-  try{const d=await db.doc(`users/${u.uid}`).get();me=d.data()||{};await UCVM.ready(u,me);role=UCVM.role(me.role);await loadPeopleOnce();listenPeople();listenGroups();listenSessions();listenRequests();injectButtons()}catch(e){console.warn('[approval workflow init]',e)}
+  try{const d=window.UCVM_PAGE_DATA?.profileSnapshot?await window.UCVM_PAGE_DATA.profileSnapshot(u.uid):await db.doc(`users/${u.uid}`).get();me=d.data()||{};await UCVM.ready(u,me);role=UCVM.role(me.role);listenPeople();listenGroups();listenSessions();listenRequests();injectButtons()}catch(e){console.warn('[approval workflow init]',e)}
  });
 })();
