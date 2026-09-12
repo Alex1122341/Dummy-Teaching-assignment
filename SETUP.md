@@ -36,7 +36,11 @@ This branch runs the UCVM faculty role/group/history features on the Firebase Sp
    functions/node_modules/.bin/firebase.cmd deploy --project tester-teaching --only firestore:rules
    ```
    If the local Firebase CLI dependency is unavailable later, any Firebase CLI installation can deploy these rules; Cloud Functions are not required.
-6. Publish the frontend files through the existing GitHub Pages process.
+6. Publish the frontend files with Firebase Hosting:
+   ```bash
+   functions/node_modules/.bin/firebase.cmd deploy --project tester-teaching --only hosting
+   ```
+   The production URL is `https://tester-teaching.web.app/`. This keeps the source repository private and does not require GitHub Pages.
 7. Sign in as ADFA General and open User Management.
 8. To add a person:
    - Firebase Console > Authentication > Users > Add user.
